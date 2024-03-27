@@ -23,8 +23,7 @@ foreach(PACKAGE
   std_msgs
   visualization_msgs
   Eigen3
-  tf2_ros
-  tf2_geometry_msgs)
+  tf2_ros)
 
   find_package(${PACKAGE} REQUIRED)
 
@@ -37,15 +36,15 @@ include_directories(
 )
 
 # Create Cpp executable
-add_executable(race2_node src/race2_node.cpp)
+add_executable(pure_pursuit_node src/pure_pursuit_node.cpp)
 
-ament_target_dependencies(race2_node 
-  rclcpp geometry_msgs ackermann_msgs nav_msgs sensor_msgs std_msgs visualization_msgs tf2_ros tf2_geometry_msgs
+ament_target_dependencies(pure_pursuit_node 
+  rclcpp geometry_msgs ackermann_msgs nav_msgs sensor_msgs std_msgs visualization_msgs tf2_ros
 )
 
 # Install Cpp executables
 install(TARGETS
-  race2_node
+  pure_pursuit_node
   DESTINATION lib/${PROJECT_NAME})
 
 # Install Python modules
@@ -53,7 +52,7 @@ ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
 install(PROGRAMS
-  scripts/race2_node.py
+  scripts/pure_pursuit_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -68,6 +67,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 ament_package()
