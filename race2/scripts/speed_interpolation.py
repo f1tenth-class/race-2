@@ -16,7 +16,6 @@ DT_S = 0.1 # 1 / frequency (Hz)
 TURN_MAX_RAD = PI / 4.0
 SENSITIVITY_TURN = 1.0
 
-# TODO: switch from lists to numpy arrays for performance
 # TODO: switch to dynamic lookahead distance based on speed
 
 # helper to compute turn angle given a list of waypoints
@@ -34,7 +33,7 @@ def distance(waypoint1, waypoint2):
     dist = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
     return dist
 
-def lookahead_waypoints(pos_curr_m, waypoints, num_lookahead_points):
+def get_lookahead_waypoints(pos_curr_m, waypoints, prev_waypoint, num_lookahead_points):
     """
     Return the upcoming waypoints within the lookahead distance.
     """
@@ -43,10 +42,10 @@ def lookahead_waypoints(pos_curr_m, waypoints, num_lookahead_points):
     # parametrize on spline?
     # initialize to numpy array of size num_lookahead_points
     lookahead_waypoints = np.zeros(num_lookahead_points)
-    # loop through waypoints np array and find index of closest waypoint in front of car
-    next_waypoint_idx = 0
+    next_waypoint_idx = prev_waypoint
     min_dist = 0.0
-    for i in range(waypoints.shape[0]):
+    for j in range(waypoints.shape[0]):
+        i = (prev_waypoint + j) % waypoints.shape[0]
         dist = distance(pos_curr_m, waypoints[i])
         heading = turn_angle([pos_curr_m, waypoints[i]])
         if dist > min_dist and abs(heading) > PI / 2:
