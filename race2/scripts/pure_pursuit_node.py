@@ -21,8 +21,8 @@ class PurePursuit(Node):
     def __init__(self):
         super().__init__('pure_pursuit_node')
         
-        self.vel = 4.0
-        self.lookahead = 2.0
+        self.vel = 1.0
+        self.lookahead = 1.0
         self.p = 0.5
 
         self.tf_buffer = tf2_ros.Buffer()
@@ -37,7 +37,7 @@ class PurePursuit(Node):
         
         # self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
-        self.waypoints = self.load_waypoints("/home/luyijie/f1tenth_ws/src/lab-5-slam-and-pure-pursuit-team-2-1/pure_pursuit/waypoints/wp_edit.csv")
+        self.waypoints = self.load_waypoints("/home/luyijie/f1tenth_ws/src/race-2/race2/waypoints/lobby_center_map.csv")
         self.publish_waypoints()
         
 
@@ -253,6 +253,7 @@ class PurePursuit(Node):
         drive_msg.header.frame_id = "ego_racecar/base_link"
         drive_msg.drive.steering_angle = self.p * curvature
         drive_msg.drive.speed = self.vel
+        self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
         self.drive_publisher.publish(drive_msg)
 
 
