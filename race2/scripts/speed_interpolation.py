@@ -34,19 +34,26 @@ def distance(waypoint1, waypoint2):
     dist = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
     return dist
 
-def lookahead_waypoints(pos_curr_m, waypoints):
+def lookahead_waypoints(pos_curr_m, waypoints, num_lookahead_points):
     """
     Return the upcoming waypoints within the lookahead distance.
     """
     # TODO: implement path reconciliation to avoid parsing all waypoints
     # and to catch prolonged and hairpin turns.
     # parametrize on spline?
-    lookahead_waypoints = []
-    for i in range(len(waypoints) - 1):
+    # initialize to numpy array of size num_lookahead_points
+    lookahead_waypoints = np.zeros(num_lookahead_points)
+    # loop through waypoints np array and find index of closest waypoint in front of car
+    next_waypoint_idx = 0
+    min_dist = 0.0
+    for i in range(waypoints.shape[0]):
         dist = distance(pos_curr_m, waypoints[i])
-        angle = turn_angle([pos_curr_m, waypoints[i]])
-        if dist < LOOKAHEAD_M and angle < abs(PI / 2.0):
-            lookahead_waypoints.append(waypoints[i])
+        heading = turn_angle([pos_curr_m, waypoints[i]])
+        if dist > min_dist and abs(heading) > PI / 2:
+            min_dist = dist
+            next_waypoint_idx = i
+    for i in range(num_lookahead_points):
+        lookahead_waypoints[i] = waypoints[(next_waypoint_idx + i) % waypoints.shape[0]]
     return lookahead_waypoints
 
 # helper to compute acceleration needed to achieve a target speed at a given distance
@@ -71,7 +78,7 @@ def check_slip(lookahead_waypoints, speed_curr_mps, pos_curr_m):
     Check if the car will slip within the lookahead distance if the current
     speed is maintained. Return the boolean and the decceleration if needed.
     """
-    for i in range(len(lookahead_waypoints) - 1):
+    for i in range(lookahead_waypoints.shape[0] - 1):
         angle = turn_angle(lookahead_waypoints[i:i+2])
         if speed_curr_mps > speed_map(angle):
             dist_to_slip_m = distance(pos_curr_m, lookahead_waypoints[i])
@@ -93,7 +100,7 @@ def compute_speed(pos_curr_m, vel_curr, next_waypoint, lookahead_waypoints):
     """
     Compute the new speed based on the current position, speed, and upcoming waypoints.
     """
-    speed_curr_mps = np.sqrt(vel_curr[0]**2 + vel_curr[1]**2)
+    speed_curr_mps = np.linalg.norm(vel_curr)
     future_slip, deccel_mps2 = check_slip(lookahead_waypoints, speed_curr_mps, pos_curr_m)
     if future_slip:
         return accelerate(speed_curr_mps, deccel_mps2)
