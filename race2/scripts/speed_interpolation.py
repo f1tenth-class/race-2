@@ -14,6 +14,7 @@ ACCEL_MAX_MPS2 = 2.0
 ACCEL_MIN_MPS2 = -3.0
 DT_S = 0.1 # 1 / frequency (Hz)
 TURN_MAX_RAD = PI / 4.0
+SENSITIVITY_TURN = 1.0
 
 # TODO: switch from lists to numpy arrays for performance
 # TODO: switch to dynamic lookahead distance based on speed
@@ -61,7 +62,8 @@ def speed_map(turn_angle_rad):
     Return the estimated maximum speed that can be maintained at the given turn angle
     before the car will slip. Extremely hand-wavy, needs tuning.
     """
-    # TODO
+    turn_angle_adjusted_rad = min(abs(turn_angle_rad * SENSITIVITY_TURN), TURN_MAX_RAD)
+    speed_mps = SPEED_MIN_MPS + (SPEED_MAX_MPS - SPEED_MIN_MPS) * (1 - turn_angle_adjusted_rad / TURN_MAX_RAD)
     return SPEED_MAX_MPS
 
 def check_slip(lookahead_waypoints, speed_curr_mps, pos_curr_m):
