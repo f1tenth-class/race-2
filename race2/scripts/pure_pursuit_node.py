@@ -5,7 +5,6 @@ from rclpy.node import Node
 import numpy as np
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
-# from geometry_msgs.msg import TransformStamped, PoseStamped
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker, MarkerArray
 from scipy.spatial.transform import Rotation as R
