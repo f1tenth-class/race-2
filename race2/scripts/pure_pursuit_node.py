@@ -5,11 +5,9 @@ from rclpy.node import Node
 import numpy as np
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
-from geometry_msgs.msg import TransformStamped, PoseStamped
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker, MarkerArray
 from scipy.spatial.transform import Rotation as R
-import tf2_ros
 import csv
 from time import sleep
 
@@ -23,13 +21,13 @@ class PurePursuit(Node):
         super().__init__('pure_pursuit_node')
         
         # 6, 1.5, 0.5
-        self.vel = 5.0
-        self.lookahead = 1.5
-        self.p = 0.5
+        # self.vel = 6.0
+        self.lookahead = 1.0
+        # self.p = 0.5
 
         
         self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        # self.create_subscription(PoseStamped, '/pf/viz/inferred_pose', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', 50)
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', 5)
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', 10)
@@ -39,17 +37,20 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        self.waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin.csv")
-        print(self.waypoints)
+        waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin_seg.csv")
+        self.waypoints = waypoints[:, :2]
+        self.params = waypoints[:, 3:6]
+        # print(self.waypoints)
         self.publish_waypoints()
         
 
     def load_waypoints(self, path):
-        waypoints = []
-        with open(path, newline='') as f:
-            reader = csv.reader(f)
-            waypoints = list(reader)
-            waypoints = [np.array([float(wp[0]), float(wp[1])]) for wp in waypoints]
+        waypoints = np.loadtxt(path, delimiter=',')
+        # waypoints = []
+        # with open(path, newline='') as f:
+        #     reader = csv.reader(f)
+        #     waypoints = list(reader)
+        #     waypoints = [np.array([float(wp[0]), float(wp[1])]) for wp in waypoints]
         
         return waypoints
 
@@ -113,7 +114,7 @@ class PurePursuit(Node):
         # print(future_pos, two_wps)
         self.publish_future_pos(future_pos)
         self.publish_testpoints(two_wps)
-        return self.interpolate_waypoints(two_wps, current_pos)
+        return self.interpolate_waypoints(two_wps, current_pos), self.params[min_idx]
     
 
     def interpolate_waypoints(self, two_wps, curr_pos):
@@ -214,7 +215,7 @@ class PurePursuit(Node):
         # find current waypoint by projecting the car forward by lookahead distance, then finding the closest waypoint to that projected position
         # depending on the distance of the closest waypoint to current position, we will find two waypoints that sandwich the current position plus lookahead distance
         # then we interpolate between these two waypoints to find the current waypoint
-        current_waypoint = self.find_current_waypoint(current_pos, current_heading)
+        current_waypoint, current_params = self.find_current_waypoint(current_pos, current_heading)
         self.publish_goalpoint(current_waypoint)
     
         # transform the current waypoint to the vehicle frame of reference
@@ -230,14 +231,16 @@ class PurePursuit(Node):
 
         # TODO: calculate curvature/steering angle
         # print(wp_car_frame)
-        curvature = 2 * wp_car_frame[1] / self.lookahead**2
+        self.lookahead = current_params[1]
+        curvature = 2 * wp_car_frame[1] / current_params[1]**2
+        
         # print(curvature)
         # TODO: publish drive message, don't forget to limit the steering angle.
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = "ego_racecar/base_link"
-        drive_msg.drive.steering_angle = self.p * curvature
-        drive_msg.drive.speed = self.vel
+        drive_msg.drive.steering_angle = current_params[2] * curvature
+        drive_msg.drive.speed = current_params[0]
         self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
         self.drive_publisher.publish(drive_msg)
 
