@@ -26,8 +26,8 @@ class PurePursuit(Node):
         # self.p = 0.5
 
         
-        # self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
+        self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', 50)
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', 5)
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', 10)
@@ -240,9 +240,29 @@ class PurePursuit(Node):
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = "ego_racecar/base_link"
         drive_msg.drive.steering_angle = current_params[2] * curvature
-        drive_msg.drive.speed = current_params[0]
+        pf_speed = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
+        drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0])
         self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
         self.drive_publisher.publish(drive_msg)
+
+    def interpolate_vel(self, current_vel, seg_vel):
+        """
+        param:
+            current_vel : current velocity given by the particle filter
+            seg_vel : velocity in current segment
+        returns:
+            command_vel : interpolated velocity
+        """
+        acc = 1.0
+        timestep = 0.5
+        
+        if current_vel < seg_vel: # if we are accelerating
+            command_vel = current_vel + acc * timestep
+            command_vel = min(command_vel, seg_vel)
+        else: # decelrating
+            command_vel = current_vel - acc * timestep
+            command_vel = max(command_vel, seg_vel)
+        return command_vel
 
 
 def main(args=None):

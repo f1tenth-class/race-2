@@ -4,9 +4,11 @@ import matplotlib.pyplot as plt
 plot = True
 original_waypoints = np.loadtxt('race2/waypoints/traj_raceline_0.5margin.csv', delimiter=',')
 segment_points = [
-    [-5.96, 0.515, 4.0, 1.5, 0.5],
-    [0.654, -0.63, 1.5, 0.5, 0.1],
-    [1.15, 3.25, 3.0, 1.5, 0.5],
+    # x, y, vel, lookahead, p
+    [-5.96, 0.515, 4.0, 1.5, 0.3],
+    [0.654, -0.63, 2.0, 1.0, 0.3],
+    [3.67, 1.1, 1.5, 0.5, 0.1],
+    [1.15, 3.25, 3.0, 1.5, 0.3],
     [-3.36, 2.59, 1.5, 0.5, 0.1]
     ]
 segment_points = np.array(segment_points)
@@ -37,7 +39,10 @@ for i in range(len(seg_start_idx)-1):
 
 np.savetxt('race2/waypoints/traj_raceline_0.5margin_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
 
-colors = ['ro', 'bo', 'go', 'yo']
-for i in range(len(seg_start_idx)-1):
-    plt.plot(seg_waypoints[np.where(seg_waypoints[:,6] == i),0], seg_waypoints[np.where(seg_waypoints[:,6] == i),1], colors[i])
-    plt.plot(seg_waypoints[seg_start_idx[i], 0], seg_waypoints[seg_start_idx[i], 1], 'x')
+if plot:
+    colors = ['ro', 'bo', 'go', 'yo', 'co']
+    for i in range(len(seg_start_idx)-1):
+        plt.plot(seg_waypoints[np.where(seg_waypoints[:,6] == i),0], seg_waypoints[np.where(seg_waypoints[:,6] == i),1], colors[i])
+        plt.text(seg_waypoints[seg_start_idx[i], 0], seg_waypoints[seg_start_idx[i], 1], str(i))
+    plt.axis('equal')
+    plt.show()
