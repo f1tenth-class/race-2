@@ -23,8 +23,8 @@ class PurePursuit(Node):
         super().__init__('pure_pursuit_node')
         
         # 6, 1.5, 0.5
-        self.vel = 1.0
-        self.lookahead = 0.5
+        self.vel = 5.0
+        self.lookahead = 1.5
         self.p = 0.5
 
         
