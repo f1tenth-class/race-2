@@ -26,8 +26,8 @@ class PurePursuit(Node):
         # self.p = 0.5
 
         
-        self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
+        self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', 50)
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', 5)
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', 10)
