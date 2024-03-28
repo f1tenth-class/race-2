@@ -21,12 +21,12 @@ class PurePursuit(Node):
     def __init__(self):
         super().__init__('pure_pursuit_node')
         
-        self.vel = 1.0
-        self.lookahead = 1.0
-        self.p = 0.5
+        # 6, 1.5, 0.5
+        self.vel = 7.0
+        self.lookahead = 2.0
+        self.p = 0.7
 
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        
         self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
         # self.create_subscription(PoseStamped, '/pf/viz/inferred_pose', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', 50)
@@ -35,7 +35,8 @@ class PurePursuit(Node):
         self.future_pos_publisher = self.create_publisher(Marker, '/pure_pursuit/future_pos', 5)
         self.drive_publisher = self.create_publisher(AckermannDriveStamped, '/drive', 10)
         
-        # self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
+        self.map_to_car_rotation = None
+        self.map_to_car_translation = None
 
         self.waypoints = self.load_waypoints("/home/luyijie/f1tenth_ws/src/race-2/race2/waypoints/lobby_center_map.csv")
         self.publish_waypoints()
@@ -203,26 +204,11 @@ class PurePursuit(Node):
         # self.publish_waypoints()
 
         # TODO: find the current waypoint to track using methods mentioned in lecture
-        # try:
-        #     map_to_car_transform = self.tf_buffer.lookup_transform("map", "ego_racecar/base_link", rclpy.time.Time())
-        #     # map_to_car_translation = map_to_car_transform.transform.translation
-        #     # map_to_car_rotation = R.from_quat(map_to_car_transform.transform.rotation)
-        #     # self.get_logger().info("transform")
-        # except Exception as error:
-        #     print(error)
-        #     return
-        # map_to_car_translation = map_to_car_transform.transform.translation
-        # map_to_car_translation = np.array([map_to_car_translation.x, map_to_car_translation.y, map_to_car_translation.z])
-        # map_to_car_rotation = map_to_car_transform.transform.rotation
-        # map_to_car_rotation = R.from_quat([map_to_car_rotation.x, map_to_car_rotation.y, map_to_car_rotation.z, map_to_car_rotation.w])
-        # # print(map_to_car_translation, map_to_car_rotation.as_matrix())
+        
         current_pos = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y])
         current_heading = R.from_quat(np.array([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w]))
-        # # map_pos = (car_pos - map_to_car_translation) @ map_to_car_rotation.inv().as_matrix()
-        # # print(car_pos, map_to_car_translation)
-        # print(car_pos, map_to_car_translation)
-        # current_heading = np.array([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w])
-
+        
+        
         # find current waypoint by projecting the car forward by lookahead distance, then finding the closest waypoint to that projected position
         # depending on the distance of the closest waypoint to current position, we will find two waypoints that sandwich the current position plus lookahead distance
         # then we interpolate between these two waypoints to find the current waypoint
@@ -230,17 +216,14 @@ class PurePursuit(Node):
         self.publish_goalpoint(current_waypoint)
     
         # transform the current waypoint to the vehicle frame of reference
-        map_to_car_transform = self.tf_buffer.lookup_transform("map", "ego_racecar/base_link", rclpy.time.Time())
-        map_to_car_translation = map_to_car_transform.transform.translation
-        map_to_car_translation = np.array([map_to_car_translation.x, map_to_car_translation.y, map_to_car_translation.z])
-        map_to_car_rotation = map_to_car_transform.transform.rotation
-        map_to_car_rotation = R.from_quat([map_to_car_rotation.x, map_to_car_rotation.y, map_to_car_rotation.z, map_to_car_rotation.w])
-        # print(current_waypoint)
+        self.map_to_car_translation = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y, pose_msg.pose.pose.position.z])
+        self.map_to_car_rotation = R.from_quat([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w])
+
         # current_waypoint = np.array(current_waypoint +)
         # print
-        wp_car_frame = (np.array([current_waypoint[0], current_waypoint[1], 0]) - map_to_car_translation)
+        wp_car_frame = (np.array([current_waypoint[0], current_waypoint[1], 0]) - self.map_to_car_translation)
         # print(wp_car_frame)
-        wp_car_frame = wp_car_frame @ map_to_car_rotation.as_matrix()
+        wp_car_frame = wp_car_frame @ self.map_to_car_rotation.as_matrix()
         # print(wp_car_frame)
 
         # TODO: calculate curvature/steering angle
