@@ -23,9 +23,9 @@ class PurePursuit(Node):
         super().__init__('pure_pursuit_node')
         
         # 6, 1.5, 0.5
-        self.vel = 7.0
-        self.lookahead = 2.0
-        self.p = 0.7
+        self.vel = 1.0
+        self.lookahead = 0.5
+        self.p = 0.5
 
         
         self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
@@ -39,7 +39,7 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        self.waypoints = self.load_waypoints("race2/waypoints/lobby_raceline.csv")
+        self.waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin.csv")
         print(self.waypoints)
         self.publish_waypoints()
         
@@ -239,7 +239,7 @@ class PurePursuit(Node):
         drive_msg.drive.steering_angle = self.p * curvature
         drive_msg.drive.speed = self.vel
         self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
-        # self.drive_publisher.publish(drive_msg)
+        self.drive_publisher.publish(drive_msg)
 
 
 def main(args=None):
