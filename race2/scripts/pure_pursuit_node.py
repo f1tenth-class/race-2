@@ -5,11 +5,10 @@ from rclpy.node import Node
 import numpy as np
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
-from geometry_msgs.msg import TransformStamped, PoseStamped
+# from geometry_msgs.msg import TransformStamped, PoseStamped
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker, MarkerArray
 from scipy.spatial.transform import Rotation as R
-import tf2_ros
 import csv
 from time import sleep
 
@@ -23,13 +22,13 @@ class PurePursuit(Node):
         super().__init__('pure_pursuit_node')
         
         # 6, 1.5, 0.5
-        self.vel = 1.0
-        self.lookahead = 0.5
+        self.vel = 6.0
+        self.lookahead = 1.0
         self.p = 0.5
 
         
         self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        # self.create_subscription(PoseStamped, '/pf/viz/inferred_pose', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', 50)
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', 5)
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', 10)
