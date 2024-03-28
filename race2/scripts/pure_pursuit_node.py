@@ -12,6 +12,7 @@ from scipy.spatial.transform import Rotation as R
 import tf2_ros
 import csv
 from time import sleep
+import segment_track as st
 
 
 class PurePursuit(Node):
@@ -23,7 +24,7 @@ class PurePursuit(Node):
         super().__init__('pure_pursuit_node')
         
         # 6, 1.5, 0.5
-        self.vel = 5.0
+        self.vel_max = 5.0
         self.lookahead = 1.5
         self.p = 0.5
 
@@ -39,26 +40,26 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        self.waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin.csv")
-        print(self.waypoints)
+        self.raceline = st.generate_segments("race2/waypoints/traj_raceline_0.5margin.csv", self.vel_max)
+        print(self.raceline)
         self.publish_waypoints()
         
 
-    def load_waypoints(self, path):
-        waypoints = []
-        with open(path, newline='') as f:
-            reader = csv.reader(f)
-            waypoints = list(reader)
-            waypoints = [np.array([float(wp[0]), float(wp[1])]) for wp in waypoints]
+    # def load_waypoints(self, path):
+    #     waypoints = []
+    #     with open(path, newline='') as f:
+    #         reader = csv.reader(f)
+    #         waypoints = list(reader)
+    #         waypoints = [np.array([float(wp[0]), float(wp[1])]) for wp in waypoints]
         
-        return waypoints
+        # return waypoints
 
     def publish_waypoints(self):
-        if len(self.waypoints) == 0:
+        if len(self.raceline) == 0:
             return
         
         markerArray = MarkerArray()
-        for i, wp in enumerate(self.waypoints):
+        for i, wp in enumerate(self.raceline):
             marker = Marker()
             marker.header.frame_id = "map"
             marker.header.stamp = self.get_clock().now().to_msg()
@@ -87,7 +88,7 @@ class PurePursuit(Node):
         future_pos = current_pos + self.lookahead * np.array([np.cos(euler_angles[0]), np.sin(euler_angles[0])])
         closest_wp = None
         min_dist = float('inf')
-        for idx, wp in enumerate(self.waypoints):
+        for idx, wp in enumerate(self.raceline):
             dist = np.linalg.norm(np.array(wp) - future_pos)
             if dist < min_dist:
                 min_dist = dist
@@ -97,18 +98,18 @@ class PurePursuit(Node):
         # self.publish_testpoints([closest_wp])
         dist_to_curr_pos = np.linalg.norm(closest_wp - current_pos)
         if dist_to_curr_pos <= self.lookahead:
-            two_wps = [self.waypoints[min_idx]]
-            if min_idx+1 < len(self.waypoints):
-                two_wps.append(self.waypoints[min_idx+1])
+            two_wps = [self.raceline[min_idx]]
+            if min_idx+1 < len(self.raceline):
+                two_wps.append(self.raceline[min_idx+1])
             else:
-                two_wps.append(self.waypoints[0])
+                two_wps.append(self.raceline[0])
         else:
             two_wps = []
             if min_idx-1 >= 0:
-                two_wps.append(self.waypoints[min_idx-1])
+                two_wps.append(self.raceline[min_idx-1])
             else:
-                two_wps.append(self.waypoints[-1])
-            two_wps.append(self.waypoints[min_idx])
+                two_wps.append(self.raceline[-1])
+            two_wps.append(self.raceline[min_idx])
         # print(two_wps, future_pos)
         # print(future_pos, two_wps)
         self.publish_future_pos(future_pos)
@@ -237,7 +238,7 @@ class PurePursuit(Node):
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = "ego_racecar/base_link"
         drive_msg.drive.steering_angle = self.p * curvature
-        drive_msg.drive.speed = self.vel
+        drive_msg.drive.speed = st.get_speed(self.raceline, current_pos)
         self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
         self.drive_publisher.publish(drive_msg)
 
