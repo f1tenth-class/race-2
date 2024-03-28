@@ -40,7 +40,12 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        self.raceline = st.generate_segments("race2/waypoints/traj_raceline_0.5margin.csv", self.vel_max)
+        # list of segments
+        segments_list = np.empty((0, 3))
+
+        self.raceline = st.generate_segments("race2/waypoints/traj_raceline_0.5margin.csv",
+                                             self.vel_max,
+                                             segments_list)
         print(self.raceline)
         self.publish_waypoints()
         
