@@ -13,6 +13,7 @@ import tf2_ros
 import csv
 from time import sleep
 
+
 class PurePursuit(Node):
     """ 
     Implement Pure Pursuit on the car
@@ -38,7 +39,8 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        self.waypoints = self.load_waypoints("/home/luyijie/f1tenth_ws/src/race-2/race2/waypoints/lobby_center_map.csv")
+        self.waypoints = self.load_waypoints("race2/waypoints/lobby_raceline.csv")
+        print(self.waypoints)
         self.publish_waypoints()
         
 
@@ -237,7 +239,7 @@ class PurePursuit(Node):
         drive_msg.drive.steering_angle = self.p * curvature
         drive_msg.drive.speed = self.vel
         self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
-        self.drive_publisher.publish(drive_msg)
+        # self.drive_publisher.publish(drive_msg)
 
 
 def main(args=None):
