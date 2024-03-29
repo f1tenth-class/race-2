@@ -39,9 +39,10 @@ class PurePursuit(Node):
 
         waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin_seg.csv")
         self.waypoints = waypoints[:, :2]
-        self.params = waypoints[:, 3:6]
+        self.params = waypoints[:, 3:7]
         # print(self.waypoints)
         self.publish_waypoints()
+        self.last_curve = None
         
 
     def load_waypoints(self, path):
@@ -239,10 +240,10 @@ class PurePursuit(Node):
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = "ego_racecar/base_link"
-        drive_msg.drive.steering_angle = current_params[2] * curvature
+        drive_msg.drive.steering_angle = current_params[2] * curvature + current_params[3] * (self.last_curve - curvature)
         pf_speed = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
         drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0])
-        self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
+        self.get_logger().info("pf speed: {} seg speed: {} command: {}".format(pf_speed, current_params[0], drive_msg.drive.speed))
         self.drive_publisher.publish(drive_msg)
 
     def interpolate_vel(self, current_vel, seg_vel):
@@ -253,8 +254,8 @@ class PurePursuit(Node):
         returns:
             command_vel : interpolated velocity
         """
-        acc = 1.0
-        timestep = 0.5
+        acc = max(0.1, 0.05 * current_vel**2)
+        timestep = 1.0
         
         if current_vel < seg_vel: # if we are accelerating
             command_vel = current_vel + acc * timestep
