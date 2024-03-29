@@ -207,7 +207,7 @@ class RearWheelFeedback(Node):
         e = np.linalg.norm(current_pos - current_waypoint)
         track_heading = np.arctan2(two_wps[0][1] - two_wps[1][1], two_wps[0][0] - two_wps[1][0])
         theta_e = track_heading - current_heading.as_euler('zyx')[0]
-        kappa_s = None # TODO: fill in from waypoint params
+        kappa_s = self.params[1]
         v_r = np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y])
         # assume theta_e ~= 0
         omega = (v_r * kappa_s * theta_e / (1 - kappa_s * e)) - (self.k_te *abs(v_r) * theta_e)
