@@ -40,7 +40,7 @@ class RearWheelFeedback(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin_seg.csv")
+        waypoints = self.load_waypoints("race2/waypoints/lobby_raceline_kappa.csv")
         self.waypoints = waypoints[:, :2]
         self.params = waypoints[:, 3:6]
         self.publish_waypoints()
