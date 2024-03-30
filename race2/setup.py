@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pure_pursuit_node = race2.pure_pursuit_node:main',
+            'rear_wheel_feedback_node = race2.rear_wheel_feedback_node:main'
         ],
     },
 )

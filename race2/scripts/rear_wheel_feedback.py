@@ -1,7 +1,9 @@
+#!/usr/bin/env python3
+
 # rear wheel position based feedback
 # implemented in https://arxiv.org/pdf/1604.07446.pdf
 
-#!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
 
@@ -40,13 +42,13 @@ class RearWheelFeedback(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/lobby_raceline_kappa.csv")
+        waypoints = self.load_waypoints("/home/tesshu/f1tenth/src/race-2/race2/waypoints/lobby_raceline_kappa.csv")
         self.waypoints = waypoints[:, :2]
         self.params = waypoints[:, 3:6]
         self.publish_waypoints()
         
     def load_waypoints(self, path):
-        waypoints = np.loadtxt(path, delimiter=',')
+        waypoints = np.loadtxt(path, delimiter=';')
         return waypoints
 
     def publish_waypoints(self):
