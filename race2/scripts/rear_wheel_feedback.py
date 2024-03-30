@@ -23,13 +23,14 @@ class RearWheelFeedback(Node):
     def __init__(self):
         super().__init__('rear_wheel_feedback_node')
         
-        # self.vel = 6.0
+        self.vel = 0.3
         self.lookahead = 1.0
         # self.p = 0.5
         # self.k_e = 0.5 # Not used when approximating cos(theta_e) as theta_e
-        self.k_te = 0.5
-        self.heading_prev = 0.0
-        self.time_prev = 0.0
+        self.k_te = -12.0
+        self.k_e = 1.5
+        self.heading_prev = None
+        self.time_prev = None
 
         self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/rear_wheel_feedback/waypoints', 50)
@@ -43,7 +44,7 @@ class RearWheelFeedback(Node):
 
         waypoints = self.load_waypoints("/home/tesshu/f1tenth/src/race-2/race2/waypoints/lobby_raceline_kappa.csv")
         self.waypoints = waypoints[:, 1:3]
-        self.params = waypoints[:, 3:6]
+        self.params = waypoints[:, 4]
         self.publish_waypoints()
         
     def load_waypoints(self, path):
@@ -107,7 +108,7 @@ class RearWheelFeedback(Node):
             two_wps.append(self.waypoints[min_idx])
         self.publish_future_pos(future_pos)
         self.publish_testpoints(two_wps)
-        return self.interpolate_waypoints(two_wps, current_pos), self.params[min_idx], two_wps
+        return self.interpolate_waypoints(two_wps, current_pos), self.params[min_idx], two_wps, min_idx
     
     def interpolate_waypoints(self, two_wps, curr_pos):
         self.publish_testpoints(two_wps)
@@ -197,7 +198,7 @@ class RearWheelFeedback(Node):
         current_heading = R.from_quat(np.array([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w]))
         if self.heading_prev is None:
             self.heading_prev = current_heading.as_euler('zyx')[0]
-        current_waypoint, current_params, two_wps = self.find_current_waypoint(current_pos, current_heading)
+        current_waypoint, current_params, two_wps, min_idx = self.find_current_waypoint(current_pos, current_heading)
         self.publish_goalpoint(current_waypoint)
 
         # TODO: use raceline for C3 continuity + curvature (5th col)
@@ -205,15 +206,23 @@ class RearWheelFeedback(Node):
         # theta_e = heading error
         # omega = heading rate
         # see V12 in linked paper
-        e = np.linalg.norm(current_pos - current_waypoint)
-        track_heading = np.arctan2(two_wps[0][1] - two_wps[1][1], two_wps[0][0] - two_wps[1][0])
+        e = current_pos - current_waypoint
+        track_heading = np.arctan2(two_wps[1][1] - two_wps[0][1], two_wps[1][0] - two_wps[0][0])
+        tangent_path = two_wps[0][1] - two_wps[1][1], two_wps[0][0] - two_wps[1][0]
+        # e = np.dot(e, np.array([tangent_path[1], tangent_path[0]]))
+        e = e[1]
+        self.get_logger().info("e: {}".format(e))
         theta_e = track_heading - current_heading.as_euler('zyx')[0]
-        kappa_s = current_params[1]
-        v_r = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
+        # self.get_logger().info("theta_e: {}".format(theta_e))
+        kappa_s = self.params[min_idx] # TODO: update after updating csv
+        v_r = pose_msg.twist.twist.linear.x
+        self.get_logger().info("kappa_s: {}".format(kappa_s))
+        # self.get_logger().info("v_r: {}".format(v_r))
+        # v_r = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
         # assume theta_e ~= 0
-        omega = (v_r * kappa_s * theta_e / (1 - kappa_s * e)) - (self.k_te *abs(v_r) * theta_e)
+        omega = (v_r * kappa_s * np.cos(theta_e) / (1 - kappa_s * e)) - (self.k_te * abs(v_r) * theta_e) - self.k_e * v_r * (np.sin(theta_e)/theta_e) * e
         # self.lookahead = current_params[1]
-        self.lookahead = 1.0
+        self.lookahead = 1.0 # TODO: pull from params after updating csv
         
         # print(curvature)
         # TODO: publish drive message, don't forget to limit the steering angle.
@@ -224,12 +233,11 @@ class RearWheelFeedback(Node):
             self.time_prev = self.get_clock().now().nanoseconds * 1e-9
         time_curr = self.get_clock().now().nanoseconds * 1e-9
         dt = time_curr - self.time_prev
-        print(omega, dt, dt*1e-9,self.heading_prev)
-        drive_msg.drive.steering_angle = (omega * dt + self.heading_prev)
+        drive_msg.drive.steering_angle = float(omega * dt * 10 + self.heading_prev)
         self.time_prev = time_curr
         pf_speed = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
-        # drive_msg.drive.speed = -self.interpolate_vel(pf_speed, current_params[0])
-        drive_msg.drive.speed = self.interpolate_vel(pf_speed, 2.0)
+        # drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0])
+        drive_msg.drive.speed = self.interpolate_vel(pf_speed, self.vel) # TODO: pull from params after updating csv
         self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
         self.drive_publisher.publish(drive_msg)
 
