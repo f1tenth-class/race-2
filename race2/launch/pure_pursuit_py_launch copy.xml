@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="pure_pursuit" exec="pure_pursuit_node.py" name="pure_pursuit" output="screen">
+    <node pkg="race2" exec="pure_pursuit_node.py" name="pure_pursuit" output="screen">
         <!-- <param name="waypoints" value="$(find pure_pursuit)/config/waypoints.yaml"/> -->
         <!-- <param name="loop_rate" value="10"/> -->
         <!-- <param name="k" value="0.1"/> -->

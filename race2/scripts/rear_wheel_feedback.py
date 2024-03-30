@@ -3,7 +3,6 @@
 # rear wheel position based feedback
 # implemented in https://arxiv.org/pdf/1604.07446.pdf
 
-
 import rclpy
 from rclpy.node import Node
 
@@ -29,8 +28,8 @@ class RearWheelFeedback(Node):
         # self.p = 0.5
         # self.k_e = 0.5 # Not used when approximating cos(theta_e) as theta_e
         self.k_te = 0.5
-        self.heading_prev = None
-        self.time_prev = None
+        self.heading_prev = 0.0
+        self.time_prev = 0.0
 
         self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/rear_wheel_feedback/waypoints', 50)
@@ -43,7 +42,7 @@ class RearWheelFeedback(Node):
         self.map_to_car_translation = None
 
         waypoints = self.load_waypoints("/home/tesshu/f1tenth/src/race-2/race2/waypoints/lobby_raceline_kappa.csv")
-        self.waypoints = waypoints[:, :2]
+        self.waypoints = waypoints[:, 1:3]
         self.params = waypoints[:, 3:6]
         self.publish_waypoints()
         
@@ -209,11 +208,12 @@ class RearWheelFeedback(Node):
         e = np.linalg.norm(current_pos - current_waypoint)
         track_heading = np.arctan2(two_wps[0][1] - two_wps[1][1], two_wps[0][0] - two_wps[1][0])
         theta_e = track_heading - current_heading.as_euler('zyx')[0]
-        kappa_s = None # TODO: fill in from waypoint params
-        v_r = np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y])
+        kappa_s = current_params[1]
+        v_r = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
         # assume theta_e ~= 0
         omega = (v_r * kappa_s * theta_e / (1 - kappa_s * e)) - (self.k_te *abs(v_r) * theta_e)
-        self.lookahead = current_params[1]
+        # self.lookahead = current_params[1]
+        self.lookahead = 1.0
         
         # print(curvature)
         # TODO: publish drive message, don't forget to limit the steering angle.
@@ -221,13 +221,15 @@ class RearWheelFeedback(Node):
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = "ego_racecar/base_link"
         if self.time_prev is None:
-            self.time_prev = self.get_clock().now().nanoseconds
-        time_curr = self.get_clock().now().nanoseconds
+            self.time_prev = self.get_clock().now().nanoseconds * 1e-9
+        time_curr = self.get_clock().now().nanoseconds * 1e-9
         dt = time_curr - self.time_prev
-        drive_msg.drive.steering_angle = omega * dt + self.heading_prev
+        print(omega, dt, dt*1e-9,self.heading_prev)
+        drive_msg.drive.steering_angle = (omega * dt*1e-9 + self.heading_prev)
         self.time_prev = time_curr
         pf_speed = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
-        drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0])
+        # drive_msg.drive.speed = -self.interpolate_vel(pf_speed, current_params[0])
+        drive_msg.drive.speed = -self.interpolate_vel(pf_speed, 2.0)
         self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
         self.drive_publisher.publish(drive_msg)
 
