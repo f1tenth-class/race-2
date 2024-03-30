@@ -8,6 +8,7 @@ from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker, MarkerArray
 from scipy.spatial.transform import Rotation as R
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy
 import csv
 from time import sleep
 
@@ -28,10 +29,10 @@ class PurePursuit(Node):
         
         self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
         # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
-        self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', 50)
-        self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', 5)
-        self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', 10)
-        self.future_pos_publisher = self.create_publisher(Marker, '/pure_pursuit/future_pos', 5)
+        self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE), 10)
+        self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), 10)
+        self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), 10)
+        self.future_pos_publisher = self.create_publisher(Marker, '/pure_pursuit/future_pos', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), 10)
         self.drive_publisher = self.create_publisher(AckermannDriveStamped, '/drive', 10)
         
         self.map_to_car_rotation = None
