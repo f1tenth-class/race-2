@@ -26,8 +26,8 @@ class PurePursuit(Node):
         # self.p = 0.5
 
         
-        self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
+        self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', 50)
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', 5)
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', 10)
@@ -42,7 +42,7 @@ class PurePursuit(Node):
         self.params = waypoints[:, 3:7]
         # print(self.waypoints)
         self.publish_waypoints()
-        self.last_curve = None
+        self.last_curve = 0.0
         
 
     def load_waypoints(self, path):
@@ -254,7 +254,7 @@ class PurePursuit(Node):
         returns:
             command_vel : interpolated velocity
         """
-        acc = max(0.1, 0.05 * current_vel**2)
+        acc = max(0.2, 0.15 * current_vel**2)
         timestep = 1.0
         
         if current_vel < seg_vel: # if we are accelerating
