@@ -116,7 +116,12 @@ class PurePursuit(Node):
         # print(future_pos, two_wps)
         self.publish_future_pos(future_pos)
         self.publish_testpoints(two_wps)
-        return self.interpolate_waypoints(two_wps, current_pos), self.params[min_idx]
+        
+        ### find waypoint closest to current position and use it for params
+        local_dist = np.linalg.norm(self.waypoints - self.waypoints, axis=1)
+        min_local_idx = np.argmin(local_dist)
+        
+        return self.interpolate_waypoints(two_wps, current_pos), self.params[min_local_idx]
     
 
     def interpolate_waypoints(self, two_wps, curr_pos):
