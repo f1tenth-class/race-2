@@ -1,0 +1,8 @@
+<launch>
+    <node pkg="race2" exec="rear_wheel_feedback_node.py" name="rear_wheel_feedback" output="screen">
+        <!-- <param name="waypoints" value="$(find rear_wheel_feedback)/config/waypoints.yaml"/> -->
+        <!-- <param name="loop_rate" value="10"/> -->
+        <!-- <param name="k" value="0.1"/> -->
+        <!-- <param name="look_ahead_distance" value="1.0"/> -->
+    </node>
+</launch>
