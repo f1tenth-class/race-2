@@ -225,11 +225,11 @@ class RearWheelFeedback(Node):
         time_curr = self.get_clock().now().nanoseconds * 1e-9
         dt = time_curr - self.time_prev
         print(omega, dt, dt*1e-9,self.heading_prev)
-        drive_msg.drive.steering_angle = (omega * dt*1e-9 + self.heading_prev)
+        drive_msg.drive.steering_angle = (omega * dt + self.heading_prev)
         self.time_prev = time_curr
         pf_speed = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
         # drive_msg.drive.speed = -self.interpolate_vel(pf_speed, current_params[0])
-        drive_msg.drive.speed = -self.interpolate_vel(pf_speed, 2.0)
+        drive_msg.drive.speed = self.interpolate_vel(pf_speed, 2.0)
         self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
         self.drive_publisher.publish(drive_msg)
 
