@@ -3,16 +3,16 @@ import matplotlib.pyplot as plt
 import cv2
 
 plot = False
-original_waypoints = np.loadtxt('race2/waypoints/traj_raceline_0.5margin.csv', delimiter=',')
+original_waypoints = np.loadtxt('race2/waypoints/race1_raceline.csv', delimiter=',')
 segment_points = [
-    # x, y, vel, lookahead, p, d
-    [-5.96, 0.515, 3.0, 0.5, 0.3, 0.05],
-    [-4.5, -0.3, 5.0, 1.0, 0.3, 0.05],
-    [2.24, -0.24, 4.0, 0.8, 0.3, 0.05],
-    [4.15, 2.6, 2.0, 0.5, 0.2, 0.05], # haripin 1
-    [2.0, 4.0, 3.0, 0.5, 0.3, 0.05],
-    [0.74, 2.84, 4.0, 1.0, 0.3, 0.05],
-    [-4.95, 2.74, 2.0, 0.5, 0.1, 0.05] # hairpin 2
+    # x, y, vel, lookahead, p
+    [-5.96, 0.515, 2.0, 0.5, 0.05, 0.00],
+    [-4.5, -0.3, 5.0, 1.0, 0.2, 0.00],
+    [0.654, -0.63, 5.0, 0.8, 0.3, 0.00],
+    [4.0, 2.0, 2.0, 0.5, 0.3, 0.00], # haripin 1
+    [2.0, 4.0, 3.0, 0.5, 0.3, 0.00],
+    [0.74, 2.84, 5.0, 1.5, 0.2, 0.00],
+    [-3.36, 2.59, 2.0, 0.5, 0.05, 0.00] # hairpin 2
     ]
 segment_points = np.array(segment_points)
 seg_start_idx = []
