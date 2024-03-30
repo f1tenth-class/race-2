@@ -2,17 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
-plot = True
+plot = False
 original_waypoints = np.loadtxt('race2/waypoints/traj_raceline_0.5margin.csv', delimiter=',')
 segment_points = [
     # x, y, vel, lookahead, p, d
-    [-5.96, 0.515, 3.0, 0.5, 0.3, 0.1],
-    [-4.5, -0.3, 7.0, 1.0, 0.3, 0.1],
-    [2.24, -0.24, 5.0, 0.8, 0.3, 0.1],
-    [4.15, 2.6, 2.0, 0.5, 0.3, 0.1], # haripin 1
-    [2.0, 4.0, 3.0, 0.5, 0.3, 0.1],
-    [0.74, 2.84, 5.0, 1.5, 0.3, 0.1],
-    [-4.95, 2.74, 2.0, 0.5, 0.3, 0.1] # hairpin 2
+    [-5.96, 0.515, 3.0, 0.5, 0.3, 0.05],
+    [-4.5, -0.3, 5.0, 1.0, 0.3, 0.05],
+    [2.24, -0.24, 4.0, 0.8, 0.3, 0.05],
+    [4.15, 2.6, 2.0, 0.5, 0.2, 0.05], # haripin 1
+    [2.0, 4.0, 3.0, 0.5, 0.3, 0.05],
+    [0.74, 2.84, 4.0, 1.0, 0.3, 0.05],
+    [-4.95, 2.74, 2.0, 0.5, 0.1, 0.05] # hairpin 2
     ]
 segment_points = np.array(segment_points)
 seg_start_idx = []
@@ -39,7 +39,7 @@ for i in range(len(seg_start_idx)-1):
             seg_waypoints[j, 3:7] = segment_points[i, 2:]
             seg_waypoints[j, 7] = i
 
-# np.savetxt('race2/waypoints/traj_raceline_0.5margin_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
+np.savetxt('race2/waypoints/traj_raceline_0.5margin_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
 lobby_map = cv2.imread('race2/map/lobby_refine.png', cv2.IMREAD_GRAYSCALE)
 
 if plot:
