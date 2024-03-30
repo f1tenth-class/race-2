@@ -23,12 +23,12 @@ class RearWheelFeedback(Node):
     def __init__(self):
         super().__init__('rear_wheel_feedback_node')
         
-        self.vel = 0.3
+        self.vel = 0.5
         self.lookahead = 1.0
         # self.p = 0.5
         # self.k_e = 0.5 # Not used when approximating cos(theta_e) as theta_e
-        self.k_te = -12.0
-        self.k_e = 1.5
+        self.k_te = -10.0
+        self.k_e = 4.0
         self.heading_prev = None
         self.time_prev = None
 
@@ -118,7 +118,10 @@ class RearWheelFeedback(Node):
         beta = np.pi - alpha
         a = np.linalg.norm(pos_vec) * np.cos(beta)
         b = np.linalg.norm(pos_vec) * np.sin(beta)
-        c = np.sqrt(self.lookahead**2 - b**2) - a
+        if self.lookahead**2 - b**2 >= 0:
+            c = np.sqrt(self.lookahead**2 - b**2) - a
+        else:
+            c = -a
         return two_wps[0] - c * wp_vec / np.linalg.norm(wp_vec)
 
     def publish_future_pos(self, future_pos):
@@ -220,9 +223,9 @@ class RearWheelFeedback(Node):
         # self.get_logger().info("v_r: {}".format(v_r))
         # v_r = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
         # assume theta_e ~= 0
-        omega = (v_r * kappa_s * np.cos(theta_e) / (1 - kappa_s * e)) - (self.k_te * abs(v_r) * theta_e) - self.k_e * v_r * (np.sin(theta_e)/theta_e) * e
+        omega = 0.5 * (v_r * kappa_s * np.cos(theta_e) / (1 - kappa_s * e)) - (self.k_te * abs(v_r) * theta_e) - self.k_e * v_r * (np.sin(theta_e)/theta_e) * e
         # self.lookahead = current_params[1]
-        self.lookahead = 1.0 # TODO: pull from params after updating csv
+        self.lookahead = 0.7 # TODO: pull from params after updating csv
         
         # print(curvature)
         # TODO: publish drive message, don't forget to limit the steering angle.
