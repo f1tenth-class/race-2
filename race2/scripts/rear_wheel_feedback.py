@@ -27,8 +27,8 @@ class RearWheelFeedback(Node):
         self.lookahead = 1.0
         # self.p = 0.5
         # self.k_e = 0.5 # Not used when approximating cos(theta_e) as theta_e
-        self.k_te = 0
-        self.k_e = 0.3
+        self.k_te = 0.5
+        self.k_e = 0.5
         self.heading_prev = None
         self.time_prev = None
 
@@ -252,12 +252,19 @@ class RearWheelFeedback(Node):
         e = e[1]
         # self.get_logger().info("e: {}".format(e))
         theta_e = track_heading - current_heading.as_euler('zyx')[0]
+        if theta_e  < -np.pi:
+            theta_e += 2*np.pi
+        elif theta_e  > np.pi:
+            theta_e -= 2*np.pi
+        
         # self.get_logger().info("track_heading: {}".format(track_heading))
         # self.get_logger().info("current_heading: {}".format(current_heading.as_euler('zyx')[0]))
-        # self.get_logger().info("theta_e: {}".format(theta_e))
+        self.get_logger().info("theta_e: {}".format(theta_e))
         # self.get_logger().info("e: {}".format(e))
         
         kappa_s = self.params[min_idx] # TODO: update after updating csv
+        self.get_logger().info("kappa: {}".format(kappa_s))
+        self.get_logger().info("cos_theta: {}".format(np.cos(theta_e)))
         
         # self.get_logger().info("kappa_s: {}".format(kappa_s))
         # self.get_logger().info("v_r: {}".format(v_r))
