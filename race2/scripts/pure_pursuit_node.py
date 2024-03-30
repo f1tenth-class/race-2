@@ -27,21 +27,12 @@ class PurePursuit(Node):
         # self.p = 0.5
 
         
-<<<<<<< HEAD
         self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
         # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
-        self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE), 10)
-        self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), 10)
-        self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), 10)
-        self.future_pos_publisher = self.create_publisher(Marker, '/pure_pursuit/future_pos', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL), 10)
-=======
-        # self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
-        self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', 50)
-        self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', 5)
-        self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', 10)
-        self.future_pos_publisher = self.create_publisher(Marker, '/pure_pursuit/future_pos', 5)
->>>>>>> 0bb1bd3b4f4e5f80f6533fa0cd471d69305afc0e
+        self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE))
+        self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
+        self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
+        self.future_pos_publisher = self.create_publisher(Marker, '/pure_pursuit/future_pos', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
         self.drive_publisher = self.create_publisher(AckermannDriveStamped, '/drive', 10)
         
         self.map_to_car_rotation = None
@@ -52,7 +43,7 @@ class PurePursuit(Node):
         self.params = waypoints[:, 3:7]
         # print(self.waypoints)
         self.publish_waypoints()
-        self.last_curve = 0.0
+        self.last_curve = None
         
 
     def load_waypoints(self, path):
@@ -264,7 +255,7 @@ class PurePursuit(Node):
         returns:
             command_vel : interpolated velocity
         """
-        acc = max(0.2, 0.15 * current_vel**2)
+        acc = max(0.1, 0.05 * current_vel**2)
         timestep = 1.0
         
         if current_vel < seg_vel: # if we are accelerating
