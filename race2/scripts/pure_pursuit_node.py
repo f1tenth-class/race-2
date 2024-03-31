@@ -39,8 +39,14 @@ class PurePursuit(Node):
         self.waypoints = waypoints[:, :2] # x, y
         self.params = waypoints[:, 2:] #  v, look_ahead, p, d, index
         
-        #
-        self.global_min_speed = self.params[:, 0].min()
+        ## Scale global speed
+        velocities = self.params[:, 0].copy()
+        gloabl_v_min = velocities.min()
+        global_v_max = velocities.max()
+        set_v_min = 2.0
+        set_v_max = 5.0
+        self.params[:, 0] = (velocities - gloabl_v_min) / (global_v_max - gloabl_v_min) * (set_v_max - set_v_min) + set_v_min
+        
         
         self.publish_waypoints()
         self.last_curve = 0.0
