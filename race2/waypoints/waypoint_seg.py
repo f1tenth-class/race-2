@@ -3,19 +3,23 @@ import numpy as np
 import cv2
 
 plot = False
-original_waypoints = np.loadtxt('race2/waypoints/race1_gentle.csv', delimiter=',')
+original_waypoints = np.loadtxt('race2/waypoints/race1_gtl2_imp.csv', delimiter=',')
 lobby_map = cv2.imread('race2/map/race_1.pgm', cv2.IMREAD_GRAYSCALE)
 
 segment_points = [
     # x, y, vel, lookahead, p, d
-    [-6.0, 0.7, 1.0, 1.5, 0.35, 0.01],
-    [-4.5, -0.3, 1.0, 2.0, 0.2, 0.01],
-    [0.654, -0.63, 0.9, 1.5, 0.35, 0.01],
-    [4.0, 2.0, 0.9, 1.0, 0.3, 0.01], # haripin 1
-    [2.0, 4.0, 0.7, 1.0, 0.2, 0.01],
-    [-0.5, 2.2, 0.9, 1.0, 0.1, 0.01],
-    [-2.7, 2.59, 0.7, 1.5, 0.1, 0.01], # hairpin 2
-    [-4.4, 2.5, 0.8, 1.5, 0.35, 0.01]
+    [-6.2, 0.7, 1.0, 1.5, 0.35, 0.01],
+    [-4.5, -0.5, 1.05, 1.5, 0.2, 0.01],
+    [0.654, -0.5, 0.75, 1.2, 0.4, 0.02],
+    [2.6, 0.45, 0.7, 1.5, 0.3, 0.05],
+    [3.9, 2.0, 0.9, 1.5, 0.4, 0.05], # haripin 1
+    [4.1, 4.0, 0.9, 1.5, 0.4, 0.1],
+    [2.6, 4.8, 0.9, 1.0, 0.3, 0.05],
+    [1.2, 3.8, 0.7, 1.0, 0.2, 0.01],
+    [0.3, 2.6, 0.9, 1.0, 0.1, 0.01],
+    [-2.2, 2.3, 0.7, 1.0, 0.1, 0.02], 
+    [-4.7, 2.5, 0.8, 1.5, 0.35, 0.01], # hairpin 2
+    [-5.8, 1.8, 0.8, 1.5, 0.35, 0.01]
     ]
 segment_points = np.array(segment_points)
 seg_start_idx = []
@@ -28,7 +32,7 @@ print(seg_start_idx)
 
 # print(original_waypoints)
 seg_waypoints = np.zeros((original_waypoints.shape[0], 8))
-seg_waypoints[:, :3] = original_waypoints[:, [0, 1, 4]]
+seg_waypoints[:, :3] = original_waypoints[:, [0, 1, 2]]
 seg_start_idx.append(seg_start_idx[0])
 for i in range(len(seg_start_idx)-1):
     if seg_start_idx[i] > seg_start_idx[i+1]:
@@ -43,15 +47,15 @@ for i in range(len(seg_start_idx)-1):
             seg_waypoints[j, 3:-1] = segment_points[i, 2:]
             seg_waypoints[j, -1] = i
 
-velocities = self.params[:, 0].copy()
-gloabl_v_min = velocities.min()
-global_v_max = velocities.max()
-set_v_min = 2.2
-set_v_max = 5.5
-seg_waypoints[:,2] = (velocities - gloabl_v_min) / (global_v_max - gloabl_v_min) * (set_v_max - set_v_min) + set_v_min
+# velocities = seg_waypoints[:,2]
+# gloabl_v_min = velocities.min()
+# global_v_max = velocities.max()
+# set_v_min = 2.2
+# set_v_max = 5.5
+# seg_waypoints[:,2] = (velocities - gloabl_v_min) / (global_v_max - gloabl_v_min) * (set_v_max - set_v_min) + set_v_min
 
 
-np.savetxt('race2/waypoints/race1_gentle_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
+np.savetxt('race2/waypoints/race1_gtl2_imp_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
 
 if plot:
     # fig, ax1 = plt.subplots()
