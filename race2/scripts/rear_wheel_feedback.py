@@ -106,7 +106,6 @@ class RearWheelFeedback(Node):
                 min_dist = dist
                 closest_wp = wp
                 min_idx = idx
-        
         dist_to_curr_pos = np.linalg.norm(closest_wp - current_pos)
         if dist_to_curr_pos <= self.lookahead:
             two_wps = [self.waypoints[min_idx]]
@@ -211,9 +210,11 @@ class RearWheelFeedback(Node):
         marker.color.b = 0.0
         self.goalpoint_publisher.publish(marker)
     
+    
     def pose_callback(self, pose_msg):
         current_pos = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y])
         current_heading = R.from_quat(np.array([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w]))
+        
         if self.heading_prev is None:
             self.heading_prev = current_heading.as_euler('zyx')[0]
         current_waypoint, current_params, two_wps, min_idx = self.find_current_waypoint(current_pos, current_heading)
@@ -222,11 +223,8 @@ class RearWheelFeedback(Node):
         self.map_to_car_translation = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y, pose_msg.pose.pose.position.z])
         self.map_to_car_rotation = R.from_quat([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w])
 
-        # current_waypoint = np.array(current_waypoint +)
-        # print
-        wp_car_frame = (np.array([current_waypoint[0], current_waypoint[1], 0]) - self.map_to_car_translation)
-        # print(wp_car_frame)
-        wp_car_frame = wp_car_frame @ self.map_to_car_rotation.as_matrix()
+        current_waypoint_cf = (np.array([current_waypoint[0], current_waypoint[1], 0]) - self.map_to_car_translation)
+        current_waypoint_cf = current_waypoint_cf @ self.map_to_car_rotation.as_matrix()
 
         current_pos = (np.array([current_pos[0], current_pos[1], 0]) - self.map_to_car_translation)
         current_pos = current_pos @ self.map_to_car_rotation.as_matrix()
@@ -253,16 +251,8 @@ class RearWheelFeedback(Node):
         # v_r = v_r[0]
         # self.get_logger().info("v_r_rot: {}".format(v_r))
 
-        
-        # TODO: use raceline for C3 continuity + curvature (5th col)
-        # e = position error
-        # theta_e = heading error
-        # omega = heading rate
-        # see V12 in linked paper
-        # e = current_pos - current_waypoint
-        e = current_pos - np.array([wp_car_frame[0], wp_car_frame[1]])
+        e = current_pos - np.array([current_waypoint_cf[0], current_waypoint_cf[1]])
         track_heading = np.arctan2(two_wps[1][1] - two_wps[0][1], two_wps[1][0] - two_wps[0][0])
-        # self.get_logger().info("track_heading: {}".format(track_heading))
         tangent_path = two_wps[0][1] - two_wps[1][1], two_wps[0][0] - two_wps[1][0]
         # e = np.dot(e, np.array([tangent_path[1], tangent_path[0]]))
         e = e[1]
