@@ -38,7 +38,7 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/race1_seg.csv")
+        waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin_seg.csv")
         self.waypoints = waypoints[:, :2]
         self.params = waypoints[:, 3:]
         # print(self.waypoints)
@@ -118,7 +118,7 @@ class PurePursuit(Node):
         self.publish_testpoints(two_wps)
         
         ### find waypoint closest to current position and use it for params
-        local_dist = np.linalg.norm(self.waypoints - self.waypoints, axis=1)
+        local_dist = np.linalg.norm(self.waypoints - current_pos, axis=1)
         min_local_idx = np.argmin(local_dist)
         
         return self.interpolate_waypoints(two_wps, current_pos), self.params[min_local_idx]
@@ -134,8 +134,11 @@ class PurePursuit(Node):
         beta = np.pi - alpha
         a = np.linalg.norm(pos_vec) * np.cos(beta)
         b = np.linalg.norm(pos_vec) * np.sin(beta)
-        c = np.sqrt(self.lookahead**2 - b**2) - a
-        return two_wps[0] - c * wp_vec / np.linalg.norm(wp_vec)
+        if self.lookahead**2 - b**2 > 0:
+            c = np.sqrt(self.lookahead**2 - b**2) - a
+            return two_wps[0] - c * wp_vec / np.linalg.norm(wp_vec)
+        else:
+            return two_wps[1]
 
     def publish_future_pos(self, future_pos):
         marker = Marker()
@@ -223,7 +226,7 @@ class PurePursuit(Node):
         # depending on the distance of the closest waypoint to current position, we will find two waypoints that sandwich the current position plus lookahead distance
         # then we interpolate between these two waypoints to find the current waypoint
         current_waypoint, current_params = self.find_current_waypoint(current_pos, current_heading)
-        self.publish_goalpoint(current_waypoint)
+        # self.publish_goalpoint(current_waypoint)
     
         # transform the current waypoint to the vehicle frame of reference
         self.map_to_car_translation = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y, pose_msg.pose.pose.position.z])
@@ -260,7 +263,7 @@ class PurePursuit(Node):
         returns:
             command_vel : interpolated velocity
         """
-        acc = max(0.2, 0.15 * current_vel**2)
+        acc = max(0.2, 0.1 * current_vel**2)
         timestep = 1.0
         
         if current_vel < seg_vel: # if we are accelerating
