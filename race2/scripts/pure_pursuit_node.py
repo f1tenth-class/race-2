@@ -36,8 +36,11 @@ class PurePursuit(Node):
         self.map_to_car_translation = None
 
         waypoints = self.load_waypoints("race2/waypoints/race1_0.7_seg.csv")
-        self.waypoints = waypoints[:, :2] # x, y, v, look_ahead, p, d, index
-        self.params = waypoints[:, 2:]
+        self.waypoints = waypoints[:, :2] # x, y
+        self.params = waypoints[:, 2:] #  v, look_ahead, p, d, index
+        
+        #
+        self.global_min_speed = self.params[:, 0].min()
         
         self.publish_waypoints()
         self.last_curve = 0.0
