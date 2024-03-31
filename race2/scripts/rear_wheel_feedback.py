@@ -30,7 +30,7 @@ class RearWheelFeedback(Node):
         self.lookahead = 1.0
         # self.p = 0.5
         # self.k_e = 0.5 # Not used when approximating cos(theta_e) as theta_e
-        self.k_te = 1.0
+        self.k_te = 1.5
         self.k_e = 0.3
         self.heading_prev = None
         self.time_prev = None
