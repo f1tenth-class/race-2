@@ -35,17 +35,17 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/race1_0.7_seg.csv")
+        waypoints = self.load_waypoints("race2/waypoints/race1_gentle_seg.csv")
         self.waypoints = waypoints[:, :2] # x, y
-        self.params = waypoints[:, 2:] #  v, look_ahead, p, d, index
+        self.params = waypoints[:, 2:] #  v, vel percent, look_ahead, p, d, index
         
         ## Scale global speed
-        velocities = self.params[:, 0].copy()
-        gloabl_v_min = velocities.min()
-        global_v_max = velocities.max()
-        set_v_min = 2.0
-        set_v_max = 5.0
-        self.params[:, 0] = (velocities - gloabl_v_min) / (global_v_max - gloabl_v_min) * (set_v_max - set_v_min) + set_v_min
+        # velocities = self.params[:, 0].copy()
+        # gloabl_v_min = velocities.min()
+        # global_v_max = velocities.max()
+        # set_v_min = 2.2
+        # set_v_max = 5.5
+        # self.params[:, 0] = (velocities - gloabl_v_min) / (global_v_max - gloabl_v_min) * (set_v_max - set_v_min) + set_v_min
         
         
         self.publish_waypoints()
@@ -126,6 +126,7 @@ class PurePursuit(Node):
         # depending on the distance of the closest waypoint to current position, we will find two waypoints that sandwich the current position plus lookahead distance
         # then we interpolate between these two waypoints to find the current waypoint
         current_waypoint, current_params = self.find_current_waypoint(current_pos, current_heading)
+        self.publish_goalpoint(current_waypoint)
     
         # transform the current waypoint to the vehicle frame of reference
         self.map_to_car_translation = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y, pose_msg.pose.pose.position.z])
@@ -135,16 +136,16 @@ class PurePursuit(Node):
         wp_car_frame = (np.array([current_waypoint[0], current_waypoint[1], 0]) - self.map_to_car_translation)
         wp_car_frame = wp_car_frame @ self.map_to_car_rotation.as_matrix()
 
-        self.lookahead = current_params[1] 
-        curvature = 2 * wp_car_frame[1] / current_params[1]**2
+        self.lookahead = current_params[2] 
+        curvature = 2 * wp_car_frame[1] / self.lookahead**2
         
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = "ego_racecar/base_link"
-        drive_msg.drive.steering_angle = current_params[2] * curvature + current_params[3] * (self.last_curve - curvature)
+        drive_msg.drive.steering_angle = current_params[3] * curvature + current_params[4] * (self.last_curve - curvature)
         pf_speed = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
-        drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0])
-        self.get_logger().info("pf speed: {} seg speed: {} command: {}".format(pf_speed, current_params[0], drive_msg.drive.speed))
+        drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0] * current_params[1])
+        self.get_logger().info("pf speed: {} seg speed: {} command: {}".format(pf_speed, current_params[0] * current_params[1], drive_msg.drive.speed))
         self.drive_publisher.publish(drive_msg)
 
     def interpolate_vel(self, current_vel, seg_vel):
@@ -155,7 +156,8 @@ class PurePursuit(Node):
         returns:
             command_vel : interpolated velocity
         """
-        acc = max(0.2, 0.1 * current_vel**2)
+        # return seg_vel
+        acc = max(0.1, 0.1 * current_vel**2)
         timestep = 1.0
         
         if current_vel < seg_vel: # if we are accelerating

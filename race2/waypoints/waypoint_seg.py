@@ -1,20 +1,21 @@
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import cv2
 
 plot = False
-original_waypoints = np.loadtxt('race1_1_0.7.csv', delimiter=',')
-lobby_map = cv2.imread('../map/race_1.pgm', cv2.IMREAD_GRAYSCALE)
+original_waypoints = np.loadtxt('race2/waypoints/race1_gentle.csv', delimiter=',')
+lobby_map = cv2.imread('race2/map/race_1.pgm', cv2.IMREAD_GRAYSCALE)
 
 segment_points = [
     # x, y, vel, lookahead, p, d
-    [-5.96, 0.515, 3.0, 0.5, 0.3, 0.1],
-    [-4.5, -0.3, 5.0, 1.0, 0.3, 0.1],
-    [0.654, -0.63, 5.0, 0.8, 0.3, 0.1],
-    [4.0, 2.0, 2.0, 0.5, 0.3, 0.1], # haripin 1
-    [2.0, 4.0, 3.0, 0.5, 0.3, 0.1],
-    [0.74, 2.84, 5.0, 1.5, 0.3, 0.1],
-    [-3.36, 2.59, 2.0, 0.5, 0.3, 0.1] # hairpin 2
+    [-6.0, 0.7, 1.0, 1.5, 0.35, 0.01],
+    [-4.5, -0.3, 1.0, 2.0, 0.2, 0.01],
+    [0.654, -0.63, 0.9, 1.5, 0.35, 0.01],
+    [4.0, 2.0, 0.9, 1.0, 0.3, 0.01], # haripin 1
+    [2.0, 4.0, 0.7, 1.0, 0.2, 0.01],
+    [-0.5, 2.2, 0.9, 1.0, 0.1, 0.01],
+    [-2.7, 2.59, 0.7, 1.5, 0.1, 0.01], # hairpin 2
+    [-4.4, 2.5, 0.8, 1.5, 0.35, 0.01]
     ]
 segment_points = np.array(segment_points)
 seg_start_idx = []
@@ -26,24 +27,31 @@ for i in range(segment_points.shape[0]):
 print(seg_start_idx)
 
 # print(original_waypoints)
-seg_waypoints = np.zeros((original_waypoints.shape[0], 7))
+seg_waypoints = np.zeros((original_waypoints.shape[0], 8))
 seg_waypoints[:, :3] = original_waypoints[:, [0, 1, 4]]
 seg_start_idx.append(seg_start_idx[0])
 for i in range(len(seg_start_idx)-1):
     if seg_start_idx[i] > seg_start_idx[i+1]:
         for j in range(seg_start_idx[i], original_waypoints.shape[0]):
-            seg_waypoints[j, 3:6] = segment_points[i, 3:]
-            seg_waypoints[j, 6] = i
+            seg_waypoints[j, 3:-1] = segment_points[i, 2:]
+            seg_waypoints[j, -1] = i
         for j in range(seg_start_idx[i+1]):
-            seg_waypoints[j, 3:6] = segment_points[0, 3:]
-            seg_waypoints[j, 6] = i
+            seg_waypoints[j, 3:-1] = segment_points[0, 2:]
+            seg_waypoints[j, -1] = i
     else:
         for j in range(seg_start_idx[i], seg_start_idx[i+1]):
-            seg_waypoints[j, 3:6] = segment_points[i, 3:]
-            seg_waypoints[j, 6] = i
+            seg_waypoints[j, 3:-1] = segment_points[i, 2:]
+            seg_waypoints[j, -1] = i
+
+velocities = self.params[:, 0].copy()
+gloabl_v_min = velocities.min()
+global_v_max = velocities.max()
+set_v_min = 2.2
+set_v_max = 5.5
+seg_waypoints[:,2] = (velocities - gloabl_v_min) / (global_v_max - gloabl_v_min) * (set_v_max - set_v_min) + set_v_min
 
 
-np.savetxt('race1_0.7_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
+np.savetxt('race2/waypoints/race1_gentle_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
 
 if plot:
     # fig, ax1 = plt.subplots()
