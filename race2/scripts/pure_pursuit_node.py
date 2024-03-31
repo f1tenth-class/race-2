@@ -24,8 +24,8 @@ class PurePursuit(Node):
         self.lookahead = 1.0
 
         
-        self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
+        self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE))
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
