@@ -35,9 +35,9 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin_seg.csv")
-        self.waypoints = waypoints[:, :2]
-        self.params = waypoints[:, 3:]
+        waypoints = self.load_waypoints("race2/waypoints/race1_0.7_seg.csv")
+        self.waypoints = waypoints[:, :2] # x, y, v, look_ahead, p, d, index
+        self.params = waypoints[:, 2:]
         
         self.publish_waypoints()
         self.last_curve = 0.0
@@ -126,7 +126,7 @@ class PurePursuit(Node):
         wp_car_frame = (np.array([current_waypoint[0], current_waypoint[1], 0]) - self.map_to_car_translation)
         wp_car_frame = wp_car_frame @ self.map_to_car_rotation.as_matrix()
 
-        self.lookahead = current_params[1]
+        self.lookahead = current_params[1] 
         curvature = 2 * wp_car_frame[1] / current_params[1]**2
         
         drive_msg = AckermannDriveStamped()
