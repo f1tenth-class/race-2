@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-
+from rclpy.time import Time
 import numpy as np
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
@@ -35,7 +35,7 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/race1_gtl2_imp_seg.csv")
+        waypoints = self.load_waypoints("race2/waypoints/race1_gtl3_seg.csv")
         self.waypoints = waypoints[:, :2] # x, y
         self.params = waypoints[:, 2:] #  v, vel percent, look_ahead, p, d, index
         
@@ -63,17 +63,20 @@ class PurePursuit(Node):
     def find_current_waypoint(self, current_pos, current_heading):
         euler_angles = current_heading.as_euler('zyx')
         future_pos = current_pos + self.lookahead * np.array([np.cos(euler_angles[0]), np.sin(euler_angles[0])])
-        closest_wp = None
-        min_dist = float('inf')
-        for idx, wp in enumerate(self.waypoints):
-            dist = np.linalg.norm(np.array(wp) - future_pos)
-            if dist < min_dist:
-                min_dist = dist
-                closest_wp = wp
-                min_idx = idx
+        dist = np.linalg.norm(self.waypoints - future_pos, axis=1)
+        min_idx = np.argmin(dist)
+        closest_wp = self.waypoints[min_idx]
+        # closest_wp = None
+        # min_dist = float('inf')
+        # for idx, wp in enumerate(self.waypoints):
+        #     dist = np.linalg.norm(np.array(wp) - future_pos)
+        #     if dist < min_dist:
+        #         min_dist = dist
+        #         closest_wp = wp
+        #         min_idx = idx
         
         # self.publish_testpoints([closest_wp])
-        dist_to_curr_pos = np.linalg.norm(closest_wp - current_pos)
+        dist_to_curr_pos = dist[min_idx]#np.linalg.norm(closest_wp - current_pos)
         if dist_to_curr_pos <= self.lookahead:
             two_wps = [self.waypoints[min_idx]]
             if min_idx+1 < len(self.waypoints):
@@ -118,6 +121,7 @@ class PurePursuit(Node):
     
     
     def pose_callback(self, pose_msg):
+        # t0 = Time.from_msg(pose_msg.header.stamp)
         current_pos = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y])
         current_heading = R.from_quat(np.array([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w]))
         
@@ -147,6 +151,8 @@ class PurePursuit(Node):
         drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0] * current_params[1])
         self.get_logger().info("pf speed: {} seg speed: {} command: {}".format(pf_speed, current_params[0] * current_params[1], drive_msg.drive.speed))
         self.drive_publisher.publish(drive_msg)
+        # t1 = Time.from_msg(drive_msg.header.stamp)
+        # self.get_logger().info("Time taken: {}".format((t1 - t0).nanoseconds / 1e9))
 
     def interpolate_vel(self, current_vel, seg_vel):
         """
@@ -161,11 +167,11 @@ class PurePursuit(Node):
         timestep = 1.0
         
         if current_vel < seg_vel: # if we are accelerating
-            acc = max(0.2, 0.13 * current_vel**2)
+            acc = max(0.2, 0.25 * current_vel**2)
             command_vel = current_vel + acc * timestep
             command_vel = min(command_vel, seg_vel)
         else: # decelrating
-            acc = max(0.2, 0.13 * current_vel**2)
+            acc = max(0.2, 0.1 * current_vel**2)
             command_vel = current_vel - acc * timestep
             command_vel = max(command_vel, seg_vel)
         return command_vel
