@@ -26,12 +26,12 @@ class RearWheelFeedback(Node):
     def __init__(self):
         super().__init__('rear_wheel_feedback_node')
         
-        self.vel = 2.0
+        self.vel = 4.0
         self.lookahead = 1.0
         # self.p = 0.5
         # self.k_e = 0.5 # Not used when approximating cos(theta_e) as theta_e
-        self.k_te = 1.5
-        self.k_e = 0.3
+        self.k_te = 0.6
+        self.k_e = 0.4
         self.heading_prev = None
         self.time_prev = None
 
@@ -276,8 +276,8 @@ class RearWheelFeedback(Node):
         
         kappa_s = self.params[min_idx] # TODO: update after updating csv
         # self.get_logger().info("kappa: {}".format(kappa_s))
-        if kappa_s >= 0.1:
-            self.vel = 1.0
+        # if kappa_s >= 0.1:
+        #     self.vel = 1.0
         # self.get_logger().info("cos_theta: {}".format(np.cos(theta_e)))
         
         # self.get_logger().info("kappa_s: {}".format(kappa_s))
