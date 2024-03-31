@@ -20,15 +20,12 @@ class PurePursuit(Node):
     """
     def __init__(self):
         super().__init__('pure_pursuit_node')
-        
-        # 6, 1.5, 0.5
-        # self.vel = 6.0
+
         self.lookahead = 1.0
-        # self.p = 0.5
 
         
-        # self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
+        self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE))
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
@@ -41,49 +38,18 @@ class PurePursuit(Node):
         waypoints = self.load_waypoints("race2/waypoints/traj_raceline_0.5margin_seg.csv")
         self.waypoints = waypoints[:, :2]
         self.params = waypoints[:, 3:]
-        # print(self.waypoints)
+        
         self.publish_waypoints()
         self.last_curve = 0.0
+        self.vis = True
         
 
     def load_waypoints(self, path):
         waypoints = np.loadtxt(path, delimiter=',')
-        # waypoints = []
-        # with open(path, newline='') as f:
-        #     reader = csv.reader(f)
-        #     waypoints = list(reader)
-        #     waypoints = [np.array([float(wp[0]), float(wp[1])]) for wp in waypoints]
         
         return waypoints
 
-    def publish_waypoints(self):
-        if len(self.waypoints) == 0:
-            return
-        
-        markerArray = MarkerArray()
-        for i, wp in enumerate(self.waypoints):
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.header.stamp = self.get_clock().now().to_msg()
-            marker.id = i
-            marker.type = marker.SPHERE
-            marker.action = marker.ADD
-            marker.pose.position.x = float(wp[0])
-            marker.pose.position.y = float(wp[1])
-            marker.pose.position.z = 0.0
-            marker.pose.orientation.x = 0.0
-            marker.pose.orientation.y = 0.0
-            marker.pose.orientation.z = 0.0
-            marker.pose.orientation.w = 1.0
-            marker.scale.x = 0.2
-            marker.scale.y = 0.2
-            marker.scale.z = 0.2
-            marker.color.a = 1.0
-            marker.color.r = 0.0
-            marker.color.g = 1.0
-            marker.color.b = 0.0
-            markerArray.markers.append(marker)
-        self.waypoints_publisher.publish(markerArray)
+    
 
     def find_current_waypoint(self, current_pos, current_heading):
         euler_angles = current_heading.as_euler('zyx')
@@ -140,84 +106,9 @@ class PurePursuit(Node):
         else:
             return two_wps[1]
 
-    def publish_future_pos(self, future_pos):
-        marker = Marker()
-        marker.header.frame_id = "map"
-        marker.header.stamp = self.get_clock().now().to_msg()
-        marker.id = 0
-        marker.type = marker.SPHERE
-        marker.action = marker.ADD
-        marker.pose.position.x = future_pos[0]
-        marker.pose.position.y = future_pos[1]
-        marker.pose.position.z = 0.0
-        marker.pose.orientation.x = 0.0
-        marker.pose.orientation.y = 0.0
-        marker.pose.orientation.z = 0.0
-        marker.pose.orientation.w = 1.0
-        marker.scale.x = 0.25
-        marker.scale.y = 0.25
-        marker.scale.z = 0.25
-        marker.color.a = 1.0
-        marker.color.r = 1.0
-        marker.color.g = 1.0
-        marker.color.b = 1.0
-        self.future_pos_publisher.publish(marker)
-
-    def publish_testpoints(self, testpoints):
-        markerArray = MarkerArray()
-        for i, tp in enumerate(testpoints):
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.header.stamp = self.get_clock().now().to_msg()
-            marker.id = i
-            marker.type = marker.SPHERE
-            marker.action = marker.ADD
-            marker.pose.position.x = tp[0]
-            marker.pose.position.y = tp[1]
-            marker.pose.position.z = 0.0
-            marker.pose.orientation.x = 0.0
-            marker.pose.orientation.y = 0.0
-            marker.pose.orientation.z = 0.0
-            marker.pose.orientation.w = 1.0
-            marker.scale.x = 0.21
-            marker.scale.y = 0.21
-            marker.scale.z = 0.21
-            marker.color.a = 1.0
-            marker.color.r = 0.0
-            marker.color.g = 0.0
-            marker.color.b = 1.0
-            markerArray.markers.append(marker)
-        self.testpoint_publisher.publish(markerArray)
-
-
-    def publish_goalpoint(self, goalpoint):
-        marker = Marker()
-        marker.header.frame_id = "map"
-        marker.header.stamp = self.get_clock().now().to_msg()
-        marker.id = 0
-        marker.type = marker.SPHERE
-        marker.action = marker.ADD
-        marker.pose.position.x = goalpoint[0]
-        marker.pose.position.y = goalpoint[1]
-        marker.pose.position.z = 0.0
-        marker.pose.orientation.x = 0.0
-        marker.pose.orientation.y = 0.0
-        marker.pose.orientation.z = 0.0
-        marker.pose.orientation.w = 1.0
-        marker.scale.x = 0.2
-        marker.scale.y = 0.2
-        marker.scale.z = 0.2
-        marker.color.a = 1.0
-        marker.color.r = 1.0
-        marker.color.g = 0.0
-        marker.color.b = 0.0
-        self.goalpoint_publisher.publish(marker)
+    
     
     def pose_callback(self, pose_msg):
-        # self.publish_waypoints()
-
-        # TODO: find the current waypoint to track using methods mentioned in lecture
-        
         current_pos = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y])
         current_heading = R.from_quat(np.array([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w]))
         
@@ -226,26 +117,18 @@ class PurePursuit(Node):
         # depending on the distance of the closest waypoint to current position, we will find two waypoints that sandwich the current position plus lookahead distance
         # then we interpolate between these two waypoints to find the current waypoint
         current_waypoint, current_params = self.find_current_waypoint(current_pos, current_heading)
-        # self.publish_goalpoint(current_waypoint)
     
         # transform the current waypoint to the vehicle frame of reference
         self.map_to_car_translation = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y, pose_msg.pose.pose.position.z])
         self.map_to_car_rotation = R.from_quat([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w])
 
-        # current_waypoint = np.array(current_waypoint +)
-        # print
+        
         wp_car_frame = (np.array([current_waypoint[0], current_waypoint[1], 0]) - self.map_to_car_translation)
-        # print(wp_car_frame)
         wp_car_frame = wp_car_frame @ self.map_to_car_rotation.as_matrix()
-        # print(wp_car_frame)
 
-        # TODO: calculate curvature/steering angle
-        # print(wp_car_frame)
         self.lookahead = current_params[1]
         curvature = 2 * wp_car_frame[1] / current_params[1]**2
         
-        # print(curvature)
-        # TODO: publish drive message, don't forget to limit the steering angle.
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = "ego_racecar/base_link"
@@ -274,6 +157,115 @@ class PurePursuit(Node):
             command_vel = max(command_vel, seg_vel)
         return command_vel
 
+    ### Visulization functions
+    def publish_waypoints(self):
+        if len(self.waypoints) == 0:
+            return
+        
+        markerArray = MarkerArray()
+        for i, wp in enumerate(self.waypoints):
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = self.get_clock().now().to_msg()
+            marker.id = i
+            marker.type = marker.SPHERE
+            marker.action = marker.ADD
+            marker.pose.position.x = float(wp[0])
+            marker.pose.position.y = float(wp[1])
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+            marker.scale.x = 0.2
+            marker.scale.y = 0.2
+            marker.scale.z = 0.2
+            marker.color.a = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 1.0
+            marker.color.b = 0.0
+            markerArray.markers.append(marker)
+        self.waypoints_publisher.publish(markerArray)
+
+    def publish_future_pos(self, future_pos):
+        if not self.vis:
+            return
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = self.get_clock().now().to_msg()
+        marker.id = 0
+        marker.type = marker.SPHERE
+        marker.action = marker.ADD
+        marker.pose.position.x = future_pos[0]
+        marker.pose.position.y = future_pos[1]
+        marker.pose.position.z = 0.0
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+        marker.scale.x = 0.25
+        marker.scale.y = 0.25
+        marker.scale.z = 0.25
+        marker.color.a = 1.0
+        marker.color.r = 1.0
+        marker.color.g = 1.0
+        marker.color.b = 1.0
+        self.future_pos_publisher.publish(marker)
+
+    def publish_testpoints(self, testpoints):
+        if not self.vis:
+            return
+        markerArray = MarkerArray()
+        for i, tp in enumerate(testpoints):
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = self.get_clock().now().to_msg()
+            marker.id = i
+            marker.type = marker.SPHERE
+            marker.action = marker.ADD
+            marker.pose.position.x = tp[0]
+            marker.pose.position.y = tp[1]
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+            marker.scale.x = 0.21
+            marker.scale.y = 0.21
+            marker.scale.z = 0.21
+            marker.color.a = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            markerArray.markers.append(marker)
+        self.testpoint_publisher.publish(markerArray)
+
+
+    def publish_goalpoint(self, goalpoint):
+        if not self.vis:
+            return
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = self.get_clock().now().to_msg()
+        marker.id = 0
+        marker.type = marker.SPHERE
+        marker.action = marker.ADD
+        marker.pose.position.x = goalpoint[0]
+        marker.pose.position.y = goalpoint[1]
+        marker.pose.position.z = 0.0
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+        marker.scale.x = 0.2
+        marker.scale.y = 0.2
+        marker.scale.z = 0.2
+        marker.color.a = 1.0
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+        self.goalpoint_publisher.publish(marker)
+    
 
 def main(args=None):
     rclpy.init(args=args)
