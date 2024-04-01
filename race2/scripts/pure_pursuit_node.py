@@ -35,7 +35,7 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/race1_gtl3_seg.csv")
+        waypoints = self.load_waypoints("race2/waypoints/race1_gtl4_seg.csv")
         self.waypoints = waypoints[:, :2] # x, y
         self.params = waypoints[:, 2:] #  v, vel percent, look_ahead, p, d, index
         
@@ -167,7 +167,7 @@ class PurePursuit(Node):
         timestep = 1.0
         
         if current_vel < seg_vel: # if we are accelerating
-            acc = max(0.2, 0.25 * current_vel**2)
+            acc = max(0.25, 0.25 * current_vel**2)
             command_vel = current_vel + acc * timestep
             command_vel = min(command_vel, seg_vel)
         else: # decelrating

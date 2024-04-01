@@ -3,23 +3,23 @@ import numpy as np
 import cv2
 
 plot = False
-original_waypoints = np.loadtxt('race2/waypoints/race1_gtl3.csv', delimiter=',')
+original_waypoints = np.loadtxt('race2/waypoints/race1_gtl4.csv', delimiter=',')
 lobby_map = cv2.imread('race2/map/race_1.pgm', cv2.IMREAD_GRAYSCALE)
 
 segment_points = [
     # x, y, vel, lookahead, p, d
-    [-6.2, 0.8, 1.1, 1.5, 0.4, 0.01],
-    [-3.9, -0.5, 1.0, 4.0, 0.2, 0.01],
-    [0.0, -0.5, 0.6, 1.5, 0.3, 0.02],
-    [2.6, 0.45, 0.6, 1.5, 0.3, 0.02],
+    [-6.2, 0.8, 1.1, 1.5, 0.4, 0.02], # 0
+    [-3.9, -0.5, 1.0, 4.0, 0.2, 0.01], # 1
+    [0.0, -0.5, 0.6, 1.3, 0.4, 0.01], # 2
+    [2.6, 0.45, 0.7, 1.5, 0.3, 0.02], # 3
     [3.9, 2.0, 0.9, 1.5, 0.4, 0.05], # haripin 1
     [4.1, 4.0, 0.8, 1.5, 0.4, 0.1],
     [2.6, 4.8, 0.8, 1.0, 0.3, 0.05], #6
-    [1.2, 3.8, 0.8, 1.0, 0.3, 0.01], #7
-    [0.3, 2.6, 0.8, 1.5, 0.1, 0.01],
-    [-2.2, 2.3, 0.7, 1.0, 0.1, 0.01], 
-    [-4.7, 2.5, 0.7, 1.5, 0.35, 0.01], # hairpin 2
-    [-5.8, 1.8, 0.8, 1.5, 0.35, 0.01]
+    [1.2, 3.8, 0.8, 1.0, 0.25, 0.02], #7
+    [-0.4, 2.6, 1.0, 2.0, 0.1, 0.01], # 8
+    [-2.2, 2.3, 0.9, 1.0, 0.1, 0.01], 
+    [-4.7, 2.5, 1.1, 1.5, 0.5, 0.01], # hairpin 2
+    [-5.8, 1.8, 1.1, 1.5, 0.5, 0.01]
     ]
 segment_points = np.array(segment_points)
 seg_start_idx = []
@@ -55,7 +55,7 @@ for i in range(len(seg_start_idx)-1):
 # seg_waypoints[:,2] = (velocities - gloabl_v_min) / (global_v_max - gloabl_v_min) * (set_v_max - set_v_min) + set_v_min
 
 
-np.savetxt('race2/waypoints/race1_gtl3_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
+np.savetxt('race2/waypoints/race1_gtl4_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
 
 if plot:
     # fig, ax1 = plt.subplots()
