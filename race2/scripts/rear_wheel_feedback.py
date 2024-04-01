@@ -5,7 +5,6 @@
 
 import rclpy
 from rclpy.node import Node
-# from rclpy.time import Duration
 
 import numpy as np
 from sensor_msgs.msg import LaserScan
@@ -17,6 +16,7 @@ import csv
 from time import sleep
 from std_msgs.msg import Float32MultiArray
 
+PI = np.pi
 
 
 class RearWheelFeedback(Node):
@@ -27,11 +27,10 @@ class RearWheelFeedback(Node):
         super().__init__('rear_wheel_feedback_node')
         
         self.vel = 4.0
-        self.lookahead = 1.0
-        # self.p = 0.5
-        # self.k_e = 0.5 # Not used when approximating cos(theta_e) as theta_e
-        self.k_te = 0.6
+        self.lookahead = 0.2
+        self.k_te = 0.8
         self.k_e = 0.4
+        self.omega_1_weight = 0.5
         self.heading_prev = None
         self.time_prev = None
 
@@ -48,7 +47,7 @@ class RearWheelFeedback(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("/home/tesshu/f1tenth/src/race-2/race2/waypoints/lobby_raceline_kappa4.csv")
+        waypoints = self.load_waypoints("/home/empaul/ESE_6150/race2_ws/race2/waypoints/lobby_raceline_kappa4.csv")
         self.waypoints = waypoints[:, 1:3]
         self.params = waypoints[:, 4]
         self.publish_waypoints()
@@ -229,142 +228,51 @@ class RearWheelFeedback(Node):
         current_pos = (np.array([current_pos[0], current_pos[1], 0]) - self.map_to_car_translation)
         current_pos = current_pos @ self.map_to_car_rotation.as_matrix()
         current_pos = np.array([current_pos[0], current_pos[1]])
+        e = (current_pos - np.array([current_waypoint_cf[0], current_waypoint_cf[1]]))[1]
 
-        
-        # current_heading = self.map_to_car_rotation.as_matrix() @ current_heading.as_matrix() /
-        # current_heading = self.map_to_car_rotation.as_matrix().T @ current_heading.as_matrix()
-        # # self.get_logger().info("current_heading: {}".format(current_heading))
-        # current_heading = R.from_matrix(current_heading)
-
-        # for i in range(2):
-        #     wp_car_frame_tmp = (np.array([two_wps[i][0], two_wps[i][1], 0]) - self.map_to_car_translation)
-        #     # print(wp_car_frame)
-        #     wp_car_frame_tmp = wp_car_frame_tmp @ self.map_to_car_rotation.as_matrix()
-        #     two_wps[i] = np.array([wp_car_frame_tmp[0], wp_car_frame_tmp[1]])
-        
-        # v_r = pose_msg.twist.twist.linear.x
-        # self.get_logger().info("v_r: {}".format(pose_msg.twist.twist.linear.x))
-        v_r = pose_msg.twist.twist.linear.x
-        # v_r = (np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y, 0]) - self.map_to_car_translation)
-        # # print(wp_car_frame)
-        # v_r = v_r @ self.map_to_car_rotation.as_matrix()
-        # v_r = v_r[0]
-        # self.get_logger().info("v_r_rot: {}".format(v_r))
-
-        e = current_pos - np.array([current_waypoint_cf[0], current_waypoint_cf[1]])
         track_heading = np.arctan2(two_wps[1][1] - two_wps[0][1], two_wps[1][0] - two_wps[0][0])
         tangent_path = two_wps[0][1] - two_wps[1][1], two_wps[0][0] - two_wps[1][0]
-        # e = np.dot(e, np.array([tangent_path[1], tangent_path[0]]))
-        e = e[1]
-        # self.get_logger().info("e: {}".format(e))
-        # if track_heading >= -np.pi and track_heading <= 0.5:
-        #     track_heading += 2*np.pi
-
+        
         theta_e = track_heading - current_heading.as_euler('zyx')[0]
         if theta_e  < -np.pi:
-            theta_e += 2*np.pi
-            # theta_e = -theta_e
+            theta_e += 2 * PI
         elif theta_e  > np.pi:
-            theta_e -= 2*np.pi
-            # theta_e = -theta_e
+            theta_e -= 2 * PI
         
+        kappa_s = self.params[min_idx]
+        v_r = pose_msg.twist.twist.linear.x
         
-        # self.get_logger().info("track_heading: {}".format(track_heading))
-        # self.get_logger().info("current_heading: {}".format(current_heading.as_euler('zyx')[0]))
-        # self.get_logger().info("theta_e: {}".format(theta_e))
-        # self.get_logger().info("e: {}".format(e))
-        
-        kappa_s = self.params[min_idx] # TODO: update after updating csv
-        # self.get_logger().info("kappa: {}".format(kappa_s))
-        # if kappa_s >= 0.1:
-        #     self.vel = 1.0
-        # self.get_logger().info("cos_theta: {}".format(np.cos(theta_e)))
-        
-        # self.get_logger().info("kappa_s: {}".format(kappa_s))
-        # self.get_logger().info("v_r: {}".format(v_r))
-        # v_r = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
-        # assume theta_e ~= 0
-        omega_1 = v_r * kappa_s * abs(np.cos(theta_e)) / (1 - kappa_s * e) 
-        omega_2 =   (self.k_te * abs(v_r) * theta_e)
-        omega_3 = - self.k_e * v_r * (np.sin(theta_e)/theta_e) * e
+        omega_1 = v_r * kappa_s * abs(np.cos(theta_e)) / (1 - kappa_s * e) * self.omega_1_weight
+        omega_2 = (self.k_te * abs(v_r) * theta_e)
+        omega_3 = -self.k_e * v_r * (np.sin(theta_e)/theta_e) * e
         self.omega = omega_1 + omega_2 + omega_3
-        # self.get_logger().info("omega_1: {}".format(omega_1))
-        # self.get_logger().info("omega_2: {}".format(omega_2))
-        # self.get_logger().info("omega_3: {}".format(omega_3))
-        # omega = (v_r * kappa_s * np.cos(theta_e) / (1 - kappa_s * e)) - (self.k_te * abs(v_r) * theta_e) - self.k_e * v_r * (np.sin(theta_e)/theta_e) * e
-        # self.lookahead = current_params[1]
-        self.lookahead = 0.2 # TODO: pull from params after updating csv
         
-        # print(curvature)
-        # TODO: publish drive message, don't forget to limit the steering angle.
         self.drive_msg = AckermannDriveStamped()
         self.drive_msg.header.stamp = self.get_clock().now().to_msg()
         self.drive_msg.header.frame_id = "ego_racecar/base_link"
-        if self.time_prev is None:
-            self.time_prev = self.get_clock().now().nanoseconds * 1e-9
         time_curr = self.get_clock().now().nanoseconds * 1e-9
+        if self.time_prev is None:
+            self.time_prev = time_curr
         dt = time_curr - self.time_prev
-        # drive_msg.drive.steering_angle = float(omega * dt * 100 + self.heading_prev)
-        self.angular_velocities = [self.angular_velocity_past_past, self.angular_velocity_past, self.omega]
-        # drive_msg.drive.steering_angle = float(self.integrate_angular_velocity(angular_velocities, dt))
-        
         self.time_prev = time_curr
+        self.angular_velocities = [self.angular_velocity_past_past, self.angular_velocity_past, self.omega]
+        
         self.pf_speed = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
-        # drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0])
-        # if theta_e <= 0.4:
-        self.drive_msg.drive.speed = self.interpolate_vel(self.pf_speed, self.vel) # TODO: pull from params after updating csv
-        # else:
-        #     drive_msg.drive.speed = 0.3
-        # self.get_logger().info("steering angle: {}".format(drive_msg.drive.steering_angle))
-        # self.drive_publisher.publish(self.drive_msg)
+        self.drive_msg.drive.speed = self.interpolate_vel(self.pf_speed, self.vel, 1.0) # TODO: pull from params after updating csv
 
         debug_msg = Float32MultiArray()
         # self.debug_publisher.publish(debug_msg)
 
         self.angular_velocity_past = self.omega
-        self.angular_velocity_past_past = self.angular_velocity_past
-
-
+        self.angular_velocity_past_past = self.angular_velocity_past_past
+        
         current_time = self.get_clock().now()
-        # print(current_time)
-        # print("last", self.last_publish_time)
         if self.last_publish_time is None or current_time - self.last_publish_time >= rclpy.time.Duration(seconds=0.1):
-            # It's time to publish
-            
-            # Prepare your drive_msg as before
-            # self.drive_msg = AckermannDriveStamped()
-            # self.drive_msg.header.stamp = current_time.to_msg()
-            # self.drive_msg.header.frame_id = "ego_racecar/base_link"
-            # Calculate dt based on the last publish time
-            # print("publish!")
-
-            if self.time_prev is None:
-                self.time_prev = current_time.nanoseconds * 1e-9
-            time_curr = current_time.nanoseconds * 1e-9
-            dt = time_curr - self.time_prev
-            # Your calculations here (already provided in your pose_callback code)
-            # self.drive_msg.drive.steering_angle = float(np.trapz(self.angular_velocities, dx=dt*10)) + self.heading_prev
             self.drive_msg.drive.steering_angle = float(self.omega * 0.1 * 2 + self.heading_prev)
-            
-            
-            # After preparing your drive_msg
             self.drive_publisher.publish(self.drive_msg)
-            
-            # Update the last publish time and time_prev for next cycle
             self.last_publish_time = current_time
-            self.time_prev = time_curr
-
             debug_msg.data = [track_heading, current_heading.as_euler('zyx')[0], kappa_s, omega_1, omega_2, omega_3, self.drive_msg.drive.steering_angle, theta_e]
-            # print(self.drive_msg.drive.steering_angle)
-
             self.debug_publisher.publish(debug_msg)
-
-
-    # def timer_callback(self):
-    #     self.pose_callback()
-    #     self.drive_msg.drive.steering_angle = float(np.trapz(self.angular_velocities, dx=0.1)) + self.heading_prev
-    #     self.drive_msg.drive.speed = self.interpolate_vel(self.pf_speed, self.vel) # TODO: pull from params after updating csv
-    #     self.drive_publisher.publish(self.drive_msg)
 
 
     def integrate_angular_velocity(angular_velocities, delta_t):
@@ -377,7 +285,7 @@ class RearWheelFeedback(Node):
         """
         return np.trapz(angular_velocities, dx=delta_t)
 
-    def interpolate_vel(self, current_vel, seg_vel):
+    def interpolate_vel(self, current_vel, seg_vel, acc=1.0, timestep=0.5):
         """
         param:
             current_vel : current velocity given by the particle filter
@@ -385,16 +293,10 @@ class RearWheelFeedback(Node):
         returns:
             command_vel : interpolated velocity
         """
-        acc = 1.0
-        timestep = 0.5
-        
-        if current_vel < seg_vel: # if we are accelerating
-            command_vel = current_vel + acc * timestep
-            command_vel = min(command_vel, seg_vel)
+        if current_vel < seg_vel: # accelerating
+            return min(current_vel + acc * timestep, seg_vel)
         else: # deccelerating
-            command_vel = current_vel - acc * timestep
-            command_vel = max(command_vel, seg_vel)
-        return command_vel
+            return max(current_vel - acc * timestep, seg_vel)
 
 
 def main(args=None):
