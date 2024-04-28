@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 
 
-original_waypoints = np.loadtxt('./waypoints/race3_rl_1.csv', delimiter=',')
+original_waypoints = np.loadtxt('./waypoints/race3_rl_2.csv', delimiter=',')
 lobby_map = cv2.imread('./map/race3_2.pgm', cv2.IMREAD_GRAYSCALE)
 
 
@@ -59,21 +59,21 @@ print(seg_start_idx)
 
 
 # print(original_waypoints)
-seg_waypoints = np.zeros((original_waypoints.shape[0], 7))
+seg_waypoints = np.zeros((original_waypoints.shape[0], 8))
 seg_waypoints[:, :3] = original_waypoints[:, [0, 1, 2]]
 seg_start_idx.append(seg_start_idx[0])
 for i in range(len(seg_start_idx)-1):
     if seg_start_idx[i] > seg_start_idx[i+1]:
         for j in range(seg_start_idx[i], original_waypoints.shape[0]):
-            seg_waypoints[j, 3:6] = segment_points[i, 3:]
-            seg_waypoints[j, 6] = i
+            seg_waypoints[j, 3:7] = segment_points[i, 2:]
+            seg_waypoints[j, 7] = i
         for j in range(seg_start_idx[i+1]):
-            seg_waypoints[j, 3:6] = segment_points[0, 3:]
-            seg_waypoints[j, 6] = i
+            seg_waypoints[j, 3:7] = segment_points[0, 2:]
+            seg_waypoints[j, 7] = i
     else:
         for j in range(seg_start_idx[i], seg_start_idx[i+1]):
-            seg_waypoints[j, 3:6] = segment_points[i, 3:]
-            seg_waypoints[j, 6] = i
+            seg_waypoints[j, 3:7] = segment_points[i, 2:]
+            seg_waypoints[j, 7] = i
             
 np.savetxt('race3_seg.csv', seg_waypoints, delimiter=',', fmt='%.3f')
 
@@ -83,7 +83,7 @@ blackpts[:, 1] = blackpts[:, 1] * resolution + origin[0]
 colors = ['ro', 'bo', 'go', 'yo']
 plt.plot(blackpts[:,1], blackpts[:,0], 'k.')
 for i in range(len(seg_start_idx)-1):
-    plt.plot(seg_waypoints[np.where(seg_waypoints[:,6] == i),0], seg_waypoints[np.where(seg_waypoints[:,6] == i),1], colors[i%4])
+    plt.plot(seg_waypoints[np.where(seg_waypoints[:,-1] == i),0], seg_waypoints[np.where(seg_waypoints[:,-1] == i),1], colors[i%4])
     plt.text(seg_waypoints[seg_start_idx[i], 0], seg_waypoints[seg_start_idx[i], 1], str(i), fontweight='bold')
 
 plt.show()

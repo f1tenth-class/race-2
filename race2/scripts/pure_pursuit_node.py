@@ -131,7 +131,21 @@ class PurePursuit(Node):
         # then we interpolate between these two waypoints to find the current waypoint
         current_waypoint, current_params = self.find_current_waypoint(current_pos, current_heading)
         self.publish_goalpoint(current_waypoint)
-    
+
+        #==== for uniformed param
+        
+        multiplier = ...
+        lookahead = ...
+        p = ...
+        d = ...
+        v = current_params[0]
+        
+        # multiplier = current_params[1]
+        # lookahead = current_params[2] 
+        # p = current_params[3]
+        # d = current_params[4]
+        
+        
         # transform the current waypoint to the vehicle frame of reference
         self.map_to_car_translation = np.array([pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y, pose_msg.pose.pose.position.z])
         self.map_to_car_rotation = R.from_quat([pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w])
@@ -140,16 +154,16 @@ class PurePursuit(Node):
         wp_car_frame = (np.array([current_waypoint[0], current_waypoint[1], 0]) - self.map_to_car_translation)
         wp_car_frame = wp_car_frame @ self.map_to_car_rotation.as_matrix()
 
-        self.lookahead = current_params[2] 
+        self.lookahead = lookahead
         curvature = 2 * wp_car_frame[1] / self.lookahead**2
         
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = self.get_clock().now().to_msg()
         drive_msg.header.frame_id = "ego_racecar/base_link"
-        drive_msg.drive.steering_angle = current_params[3] * curvature + current_params[4] * (self.last_curve - curvature)
+        drive_msg.drive.steering_angle = p * curvature + d * (self.last_curve - curvature)
         pf_speed = np.linalg.norm(np.array([pose_msg.twist.twist.linear.x, pose_msg.twist.twist.linear.y]))
-        drive_msg.drive.speed = self.interpolate_vel(pf_speed, current_params[0] * current_params[1])
-        self.get_logger().info("pf speed: {} seg speed: {} command: {}".format(pf_speed, current_params[0] * current_params[1], drive_msg.drive.speed))
+        drive_msg.drive.speed = self.interpolate_vel(pf_speed, v * multiplier)
+        self.get_logger().info("pf speed: {} seg speed: {} command: {}".format(pf_speed, v * multiplier, drive_msg.drive.speed))
         self.drive_publisher.publish(drive_msg)
         # t1 = Time.from_msg(drive_msg.header.stamp)
         # self.get_logger().info("Time taken: {}".format((t1 - t0).nanoseconds / 1e9))
