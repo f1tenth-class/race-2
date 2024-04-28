@@ -24,18 +24,20 @@ class PurePursuit(Node):
         self.lookahead = 1.0
 
         
-        # self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
+        self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE))
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
         self.future_pos_publisher = self.create_publisher(Marker, '/pure_pursuit/future_pos', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
         self.drive_publisher = self.create_publisher(AckermannDriveStamped, '/drive', 10)
+        self.inner_bound_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/inner_bound', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE))
+        self.outer_bound_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/outer_bound', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE))
         
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/race1_gtl4_seg.csv")
+        waypoints = self.load_waypoints("/home/empaul/ese6150/race2_ws/race2/waypoints/race3_seg——1.csv")
         self.waypoints = waypoints[:, :2] # x, y
         self.params = waypoints[:, 2:] #  v, vel percent, look_ahead, p, d, index
         
@@ -49,6 +51,8 @@ class PurePursuit(Node):
         
         
         self.publish_waypoints()
+        self.publish_inner_bound()
+        self.publish_outer_bound()
         self.last_curve = 0.0
         self.vis = True
         
@@ -134,10 +138,10 @@ class PurePursuit(Node):
 
         #==== for uniformed param
         
-        multiplier = ...
-        lookahead = ...
-        p = ...
-        d = ...
+        multiplier = 1.0
+        lookahead = 1.5
+        p = 0.2
+        d = 0.01
         v = current_params[0]
         
         # multiplier = current_params[1]
@@ -298,6 +302,60 @@ class PurePursuit(Node):
         marker.color.g = 0.0
         marker.color.b = 0.0
         self.goalpoint_publisher.publish(marker)
+    
+    def publish_inner_bound(self):
+        markerArray = MarkerArray()
+        inner_bound = np.loadtxt("/home/empaul/ese6150/race2_ws/opponent_predictor/outputs/race3_refine/inner_bound.csv", delimiter=',')
+        for i, wp in enumerate(inner_bound):
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = self.get_clock().now().to_msg()
+            marker.id = i
+            marker.type = marker.SPHERE
+            marker.action = marker.ADD
+            marker.pose.position.x = float(wp[0])
+            marker.pose.position.y = float(wp[1])
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+            marker.scale.x = 0.2
+            marker.scale.y = 0.2
+            marker.scale.z = 0.2
+            marker.color.a = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            markerArray.markers.append(marker)
+        self.inner_bound_publisher.publish(markerArray)
+    
+    def publish_outer_bound(self):
+        markerArray = MarkerArray()
+        inner_bound = np.loadtxt("/home/empaul/ese6150/race2_ws/opponent_predictor/outputs/race3_refine/outer_bound.csv", delimiter=',')
+        for i, wp in enumerate(inner_bound):
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.header.stamp = self.get_clock().now().to_msg()
+            marker.id = i
+            marker.type = marker.SPHERE
+            marker.action = marker.ADD
+            marker.pose.position.x = float(wp[0])
+            marker.pose.position.y = float(wp[1])
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+            marker.scale.x = 0.2
+            marker.scale.y = 0.2
+            marker.scale.z = 0.2
+            marker.color.a = 1.0
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+            markerArray.markers.append(marker)
+        self.outer_bound_publisher.publish(markerArray)
     
 
 def main(args=None):
