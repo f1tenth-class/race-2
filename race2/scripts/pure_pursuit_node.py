@@ -24,8 +24,8 @@ class PurePursuit(Node):
         self.lookahead = 1.0
 
         
-        # self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
-        self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
+        self.create_subscription(Odometry, '/ego_racecar/odom', self.pose_callback, 10)
+        # self.create_subscription(Odometry, '/pf/pose/odom', self.pose_callback, 10)
         self.waypoints_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/waypoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL, reliability=QoSReliabilityPolicy.RELIABLE))
         self.goalpoint_publisher = self.create_publisher(Marker, '/pure_pursuit/goalpoint', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
         self.testpoint_publisher = self.create_publisher(MarkerArray, '/pure_pursuit/testpoints', QoSProfile(depth=10, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL))
@@ -35,7 +35,7 @@ class PurePursuit(Node):
         self.map_to_car_rotation = None
         self.map_to_car_translation = None
 
-        waypoints = self.load_waypoints("race2/waypoints/race1_gtl4_seg.csv")
+        waypoints = self.load_waypoints("race3_seg_2.csv")
         self.waypoints = waypoints[:, :2] # x, y
         self.params = waypoints[:, 2:] #  v, vel percent, look_ahead, p, d, index
         
@@ -62,45 +62,98 @@ class PurePursuit(Node):
 
     def find_current_waypoint(self, current_pos, current_heading):
         euler_angles = current_heading.as_euler('zyx')
-        future_pos = current_pos + self.lookahead * np.array([np.cos(euler_angles[0]), np.sin(euler_angles[0])])
-        dist = np.linalg.norm(self.waypoints - future_pos, axis=1)
-        min_idx = np.argmin(dist)
-        closest_wp = self.waypoints[min_idx]
-        # closest_wp = None
-        # min_dist = float('inf')
-        # for idx, wp in enumerate(self.waypoints):
-        #     dist = np.linalg.norm(np.array(wp) - future_pos)
-        #     if dist < min_dist:
-        #         min_dist = dist
-        #         closest_wp = wp
-        #         min_idx = idx
-        
-        # self.publish_testpoints([closest_wp])
-        dist_to_curr_pos = dist[min_idx]#np.linalg.norm(closest_wp - current_pos)
-        if dist_to_curr_pos <= self.lookahead:
-            two_wps = [self.waypoints[min_idx]]
-            if min_idx+1 < len(self.waypoints):
-                two_wps.append(self.waypoints[min_idx+1])
-            else:
-                two_wps.append(self.waypoints[0])
-        else:
-            two_wps = []
-            if min_idx-1 >= 0:
-                two_wps.append(self.waypoints[min_idx-1])
-            else:
-                two_wps.append(self.waypoints[-1])
-            two_wps.append(self.waypoints[min_idx])
-        # print(two_wps, future_pos)
-        # print(future_pos, two_wps)
-        self.publish_future_pos(future_pos)
-        self.publish_testpoints(two_wps)
-        
         ### find waypoint closest to current position and use it for params
         local_dist = np.linalg.norm(self.waypoints - current_pos, axis=1)
         min_local_idx = np.argmin(local_dist)
+
+        current_params = self.params[min_local_idx]
+        self.lookahead = self.interpolate_lookahead(current_params[0])
+
+        ### find two waypoints that sandwich the current position plus lookahead distance
+        wp_cnt = len(self.waypoints)
+        if min_local_idx + wp_cnt // 3 < wp_cnt:
+            candidate_wps = self.waypoints[min_local_idx:min_local_idx + wp_cnt // 3] 
+        else:
+            candidate_wps = np.vstack([self.waypoints[min_local_idx:], self.waypoints[:min_local_idx + wp_cnt // 3 - wp_cnt]])
+        current_points = self.intersect_line_circle_vectorized(candidate_wps, current_pos, self.lookahead)
+        if len(current_points) == 0:
+            return self.waypoints[min_local_idx], current_params
         
-        return self.interpolate_waypoints(two_wps, current_pos), self.params[min_local_idx]
+
+        # future_pos = current_pos + self.lookahead * np.array([np.cos(euler_angles[0]), np.sin(euler_angles[0])])
+        # dist = np.linalg.norm(self.waypoints - future_pos, axis=1)
+        # min_idx = np.argmin(dist)
+        # closest_wp = self.waypoints[min_idx]
+        
+        # dist_to_curr_pos = dist[min_idx]#np.linalg.norm(closest_wp - current_pos)
+        # if dist_to_curr_pos <= self.lookahead:
+        #     two_wps = [self.waypoints[min_idx]]
+        #     if min_idx+1 < len(self.waypoints):
+        #         two_wps.append(self.waypoints[min_idx+1])
+        #     else:
+        #         two_wps.append(self.waypoints[0])
+        # else:
+        #     two_wps = []
+        #     if min_idx-1 >= 0:plus lookahead distance
+        #         two_wps.append(self.waypoints[min_idx-1])
+        #     else:
+        #         two_wps.append(self.waypoints[-1])
+        #     two_wps.append(self.waypoints[min_idx])
+        # # print(two_wps, future_pos)
+        # # print(future_pos, two_wps)
+        # self.publish_future_pos(future_pos)
+        # self.publish_testpoints(two_wps)
+        
+        # ### find waypoint closest to current position and use it for params
+        # local_dist = np.linalg.norm(self.waypoints - current_pos, axis=1)
+        # min_local_idx = np.argmin(local_dist)
+        
+        return current_points[0], current_params
     
+
+    def intersect_line_circle_vectorized(self, points, center, radius):
+        # Extract x and y coordinates of points
+        x = points[:, 0]
+        y = points[:, 1]
+        
+        # Calculate differences in x and y coordinates
+        dx = np.diff(x)
+        dy = np.diff(y)
+        
+        # Calculate coefficients for the quadratic equation
+        A = dx**2 + dy**2
+        B = 2*dx*(x[:-1] - center[0]) + 2*dy*(y[:-1] - center[1])
+        C = (x[:-1] - center[0])**2 + (y[:-1] - center[1])**2 - radius**2
+        
+        # Calculate discriminant
+        discriminant = B**2 - 4*A*C
+        
+        # Find indices where there are intersections
+        intersection_indices = np.where(discriminant >= 0)[0]
+        
+        # Initialize list to store intersection points
+        intersection_points = []
+        
+        # Iterate over intersection indices
+        for i in intersection_indices:
+            # Calculate t values
+            t1 = (-B[i] + np.sqrt(discriminant[i])) / (2*A[i])
+            t2 = (-B[i] - np.sqrt(discriminant[i])) / (2*A[i])
+            
+            # Calculate intersection points
+            intersection1 = (x[i] + t1*dx[i], y[i] + t1*dy[i])
+            intersection2 = (x[i] + t2*dx[i], y[i] + t2*dy[i])
+            
+            # Check if intersection points are within the line segment
+            if 0 <= t1 <= 1:
+                intersection_points.append(intersection1)
+                return intersection_points
+            if 0 <= t2 <= 1:
+                intersection_points.append(intersection2)
+                return intersection_points
+        
+        return intersection_points
+
 
     def interpolate_waypoints(self, two_wps, curr_pos):
         # print(two_wps)
@@ -118,6 +171,9 @@ class PurePursuit(Node):
         else:
             return two_wps[1]
 
+    def interpolate_lookahead(self, vel):
+        lookahead = 0.45 * vel - 0.111
+        return lookahead
     
     
     def pose_callback(self, pose_msg):
@@ -134,13 +190,13 @@ class PurePursuit(Node):
 
         #==== for uniformed param
         
-        multiplier = ...
-        lookahead = ...
-        p = ...
-        d = ...
+        # multiplier = ...
+        # lookahead = ...
+        p = 0.4
+        d = 0.001
+
         v = current_params[0]
-        
-        # multiplier = current_params[1]
+        multiplier = current_params[1]
         # lookahead = current_params[2] 
         # p = current_params[3]
         # d = current_params[4]
@@ -154,7 +210,7 @@ class PurePursuit(Node):
         wp_car_frame = (np.array([current_waypoint[0], current_waypoint[1], 0]) - self.map_to_car_translation)
         wp_car_frame = wp_car_frame @ self.map_to_car_rotation.as_matrix()
 
-        self.lookahead = lookahead
+        # self.lookahead = lookahead
         curvature = 2 * wp_car_frame[1] / self.lookahead**2
         
         drive_msg = AckermannDriveStamped()
