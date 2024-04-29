@@ -75,9 +75,9 @@ class OpponentPredictor(Node):
         # self.inner_bound = np.load(inner_bound)
         # self.outer_bound = np.load(outer_bound)
 
-        self.track = np.load("/home/empaul/ese6150/race2_ws/opponent_predictor/outputs/lobby_refine/track.npy")
-        self.inner_bound = np.load("/home/empaul/ese6150/race2_ws/opponent_predictor/outputs/lobby_refine/inner_bound.npy")
-        self.outer_bound = np.load("/home/empaul/ese6150/race2_ws/opponent_predictor/outputs/lobby_refine/outer_bound.npy")
+        self.track = np.load("/home/empaul/ese6150/race2_ws/opponent_predictor/outputs/race3_refine/track.npy")
+        self.inner_bound = np.load("/home/empaul/ese6150/race2_ws/opponent_predictor/outputs/race3_refine/inner_bound.npy")
+        self.outer_bound = np.load("/home/empaul/ese6150/race2_ws/opponent_predictor/outputs/race3_refine/outer_bound.npy")
 
         # Local Map Variables
         self.grid = None
@@ -231,11 +231,11 @@ class OpponentPredictor(Node):
     def read_map(map_name, map_img_ext):
         # map_img_path = os.path.splitext(map_name)[0] + map_img_ext
         # map_img_path = os.path.join("src", "opponent_predictor", "maps", map_img_path)
-        map_img_path = "/home/empaul/ese6150/race2_ws/opponent_predictor/map/lobby_refine.png"
+        map_img_path = "/home/empaul/ese6150/race2_ws/opponent_predictor/map/race3_refine.png"
 
         # map_cfg_path = os.path.splitext(map_name)[0] + ".yaml"
         # map_cfg_path = os.path.join("src", "opponent_predictor", "maps", map_cfg_path)
-        map_cfg_path = "/home/empaul/ese6150/race2_ws/opponent_predictor/map/lobby_refine.yaml"
+        map_cfg_path = "/home/empaul/ese6150/race2_ws/opponent_predictor/map/race3_refine.yaml"
 
         map_img = Image.open(map_img_path).transpose(Image.FLIP_TOP_BOTTOM)
         map_img = np.asarray(map_img).astype(np.float64)

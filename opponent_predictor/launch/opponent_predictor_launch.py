@@ -28,7 +28,7 @@ def generate_launch_description():
     #     'maps',
     #     map_name + ".yaml"
     # )
-    map_cfg = "/home/empaul/ese6150/race2_ws/race2/map/lobby_refine.yaml"
+    map_cfg = "/home/empaul/ese6150/race2_ws/opponent_predictor/map/race3_refine.yaml"
     map_cfg_dict = yaml.safe_load(open(map_cfg, 'r'))
 
     opponent_predictor_node = Node(
@@ -51,10 +51,10 @@ def generate_launch_description():
             {"visualize_opp_bbox": True},
             
             {"real_test": False},
-            {"map_name": "lobby_refine"},
+            {"map_name": "race3_refine"},
             {"map_img_ext": ".png"},
             {"resolution": 0.05},
-            {"origin": [-14.3, -4.94, 0]},
+            {"origin": [-10.3, -1.55, 0]},
             {"track_file": "track"},
             {"inner_bound": "inner_bound"},
             {"outer_bound": "outer_bound"},
