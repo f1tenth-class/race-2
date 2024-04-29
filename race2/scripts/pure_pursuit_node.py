@@ -237,11 +237,11 @@ class PurePursuit(Node):
         timestep = 1.0
         
         if current_vel < seg_vel: # if we are accelerating
-            acc = max(0.25, 0.25 * current_vel**2)
+            acc = max(2.5, 0.25 * current_vel**2)
             command_vel = current_vel + acc * timestep
             command_vel = min(command_vel, seg_vel)
         else: # decelrating
-            acc = max(0.2, 0.1 * current_vel**2)
+            acc = max(1.5, 0.1 * current_vel**2)
             command_vel = current_vel - acc * timestep
             command_vel = max(command_vel, seg_vel)
         return command_vel
