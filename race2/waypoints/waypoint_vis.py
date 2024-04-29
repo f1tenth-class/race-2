@@ -61,8 +61,9 @@ print(seg_start_idx)
 
 
 # print(original_waypoints)
-seg_waypoints = np.zeros((original_waypoints.shape[0], 8))
+seg_waypoints = np.zeros((original_waypoints.shape[0], 9))
 seg_waypoints[:, :3] = original_waypoints[:, [0, 1, 2]]
+seg_waypoints[:, -1] = original_waypoints[:, -1]
 seg_start_idx.append(seg_start_idx[0])
 for i in range(len(seg_start_idx)-1):
     if seg_start_idx[i] > seg_start_idx[i+1]:
