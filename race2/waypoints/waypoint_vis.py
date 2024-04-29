@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 
 
-original_waypoints = np.loadtxt('./waypoints/race3_rl_3.csv', delimiter=',')
+original_waypoints = np.loadtxt('./waypoints/race3_rl_4.csv', delimiter=',')
 lobby_map = cv2.imread('./map/race3_2.pgm', cv2.IMREAD_GRAYSCALE)
 
 
@@ -78,7 +78,7 @@ for i in range(len(seg_start_idx)-1):
             seg_waypoints[j, 3:7] = segment_points[i, 2:]
             seg_waypoints[j, 7] = i
             
-np.savetxt('race3_seg_2.csv', seg_waypoints, delimiter=',', fmt='%.3f')
+np.savetxt('race3_seg_4.csv', seg_waypoints, delimiter=',', fmt='%.3f')
 
 blackpts = np.argwhere(lobby_map <= 40).astype(np.float32)
 blackpts[:, 0] = (lobby_map.shape[0] - blackpts[:, 0]) * resolution + origin[1]
